@@ -1,0 +1,6 @@
+{
+  "name": "BuyHive",
+  "description": "BuyHive — Trusted multi-vendor e-commerce marketplace connecting buyers and independent sellers with two-stage product inspection, M-Pesa checkout, and coordinated fulfilment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

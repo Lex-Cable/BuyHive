@@ -1,0 +1,2317 @@
+# BUYHIVE — MASTER WEBSITE DEVELOPMENT PROMPT
+## Complete Multi-Vendor E-Commerce Marketplace
+
+### 1. PROJECT INTRODUCTION AND OBJECTIVE
+
+Act as a senior full-stack software architect, PHP Laravel developer, Vue.js developer, database architect, UI/UX designer and e-commerce marketplace development specialist.
+
+Develop a complete, modern, responsive, secure and scalable multi-vendor e-commerce marketplace called **BUYHIVE**.
+
+BuyHive is an online marketplace that connects customers with independent sellers, retailers, manufacturers, established brands and individual entrepreneurs.
+
+BuyHive does not purchase or own the products displayed on its marketplace. Sellers register, submit products, undergo BuyHive's product inspection process and list approved products for customers to purchase.
+
+BuyHive acts as the intermediary responsible for:
+- Connecting buyers with sellers.
+- Providing the online shopping platform.
+- Managing product listings and approval workflows.
+- Coordinating product inspections.
+- Managing customer orders.
+- Coordinating product collections and deliveries.
+- Processing payments through supported payment providers.
+- Calculating marketplace commissions.
+- Managing seller payouts.
+- Handling customer communication.
+- Monitoring customer satisfaction.
+- Managing coupons and rewards.
+
+The platform must provide two connected experiences:
+
+1. **Customer Marketplace:** The public shopping website and authenticated customer dashboard.
+2. **Seller Portal:** A separate seller-facing section within the same website, with its own registration, login and dashboard.
+
+IMPORTANT: The BuyHive management and administration website will be developed as a separate project at a later stage.
+
+Do not build, display or expose an administrator dashboard, management portal, inspection staff portal or internal management navigation in this current website.
+
+However, prepare the backend architecture and database to support future integration with a separate BuyHive management system.
+
+Do not simplify this business model into an ordinary online shop that owns or stores inventory.
+
+---
+
+# 2. REQUIRED TECHNOLOGY STACK
+
+Use the following technology stack.
+
+### Backend
+- PHP 8.3 or another version compatible with the selected Laravel release.
+- Latest stable compatible Laravel framework (Laravel 13 where supported).
+- MySQL relational database.
+- Laravel's built-in browser authentication.
+- Laravel Fortify for authentication functionality.
+- Laravel session-based authentication.
+- Laravel CSRF protection.
+- Laravel validation, middleware, policies and authorization.
+- Laravel notifications.
+- Laravel queues for background tasks.
+- Laravel file storage for product images and seller documents.
+
+### Frontend
+- Vue.js 3.
+- TypeScript.
+- Inertia.js.
+- Vite.
+- Tailwind CSS.
+- shadcn-vue components where appropriate.
+- Axios where needed.
+- Reusable Vue components and layouts.
+
+### Authentication requirements
+
+Use Laravel Fortify with Laravel's built-in session-based browser authentication.
+
+Do NOT use Laravel Sanctum.
+
+Do NOT install Sanctum as the authentication system.
+
+Do NOT use Passport.
+
+Do not create an unnecessarily separated frontend authentication system.
+
+Use the integrated Laravel and Vue/Inertia architecture so browser authentication works through Laravel sessions and secure cookies.
+
+Support:
+- Customer registration.
+- Customer login.
+- Seller registration.
+- Seller login.
+- Password recovery.
+- Email verification.
+- Secure logout.
+- Session management.
+- Role-based access control.
+
+Customer and seller accounts must have separate access permissions and appropriate login experiences.
+
+### Database
+
+Use MySQL, with:
+- Proper relational database design.
+- Foreign keys.
+- Database indexes.
+- Database migrations.
+- Seeders.
+- Factories.
+- Data validation.
+- Transaction management.
+
+### Development principles
+
+- Write clean, modular and maintainable code.
+- Use Laravel conventions.
+- Use reusable Vue components.
+- Separate frontend presentation from backend business logic.
+- Keep all sensitive configuration in environment variables.
+- Avoid hardcoded credentials.
+- Make the application responsive.
+- Use proper error handling.
+- Make all important buttons and forms functional.
+
+If Google AI Studio cannot execute or host the Laravel backend directly, generate the actual Laravel and Vue source code, configuration, file structure and installation instructions. Do not silently replace Laravel or PHP with another backend technology.
+
+---
+
+# 3. BUYHIVE BRAND IDENTITY AND DESIGN
+
+Official project name: **BUYHIVE**.
+
+BuyHive should have a professional, modern and trustworthy identity.
+
+The visual appearance should be:
+- Modern.
+- Premium.
+- Clean.
+- User-friendly.
+- Professional.
+- Attractive.
+- Consistent across the entire platform.
+
+Use:
+- A consistent BuyHive logo.
+- A professional colour palette.
+- Clear and readable typography.
+- Beautiful product photography.
+- Modern product cards.
+- Clean navigation.
+- Consistent spacing.
+- Responsive layouts.
+- Attractive buttons.
+- Subtle animations and hover effects.
+
+Use the BuyHive wordmark consistently.
+
+If final brand assets have not yet been supplied, use a replaceable text-based BuyHive logo rather than inventing an unrelated brand identity.
+
+The landing page, customer dashboard, authentication pages and Seller Portal should all have consistent BuyHive branding while maintaining different layouts appropriate to their functions.
+
+---
+
+# PART A: CUSTOMER-FACING WEBSITE
+
+# 4. PUBLIC LANDING PAGE
+
+Create an attractive, welcoming public landing page that introduces BuyHive to first-time visitors.
+
+The landing page should explain what BuyHive does, how it works and why customers should shop through the marketplace.
+
+## 4.1 Landing Page Navigation Bar
+
+The navigation bar should contain:
+
+1. BuyHive logo.
+2. Search bar.
+3. Shop navigation or Shop dropdown.
+4. Customer Login.
+5. Customer Sign Up.
+6. Seller Portal link.
+
+IMPORTANT:
+
+- Customer Login and Sign Up must lead to customer authentication pages.
+- Seller Portal must lead to a separate seller authentication experience.
+- Do NOT display the shopping cart icon on the public landing page.
+- Do NOT display administrator or management login links.
+- Keep the header clean and professional.
+
+## 4.2 Landing Page Hero Section
+
+Include:
+- Attractive promotional banner.
+- Compelling headline.
+- Short description of BuyHive.
+- Shop Now button.
+- Explore Categories button.
+- Professional shopping-related images.
+
+The message should communicate that BuyHive connects customers with a wide range of products through a convenient and trusted marketplace.
+
+## 4.3 Landing Page Content Sections
+
+Include the following sections:
+
+**A. Featured Products**
+
+Showcase selected products from different marketplace categories.
+
+**B. Best-Selling Products**
+
+Show products with strong actual sales performance.
+
+Do not display a list of sellers or disclose individual sellers' personal identities.
+
+The purpose is to showcase popular products, not the people supplying them.
+
+**C. Shop by Category**
+
+Display attractive category cards with relevant images.
+
+**D. Deals and Offers**
+
+Show products with valid discounts, promotional prices or limited-time offers.
+
+**E. Shop by Occasion**
+
+Show products suitable for occasions such as birthdays, weddings, graduation and other celebrations.
+
+**F. Trending Products**
+
+Display products receiving genuine marketplace interest and engagement.
+
+**G. New Arrivals**
+
+Show recently approved and published products.
+
+These sections should be attractive and clickable.
+
+The landing page may include simplified horizontal product and category carousels as previews of the shopping dashboard.
+
+The full shopping experience and main carousel navigation will be in the authenticated customer shopping dashboard.
+
+**H. Customer Testimonials**
+
+Show authentic customer experiences and feedback.
+
+Only display real customer testimonials with appropriate permission. Do not invent testimonials or ratings.
+
+**I. Marketplace Statistics and Facts**
+
+Include relevant marketplace information.
+
+Use genuine platform data where available. Do not fabricate customer numbers, sales figures, product totals or satisfaction statistics.
+
+**J. How BuyHive Works**
+
+Explain the marketplace process:
+
+1. Discover products.
+2. Select products.
+3. Checkout and make payment.
+4. BuyHive coordinates product collection and inspection.
+5. BuyHive coordinates delivery or collection.
+6. Customer receives the product.
+7. Customer shares feedback.
+
+**K. Why Choose BuyHive?**
+
+Highlight:
+- Product inspection.
+- Quality-control procedures.
+- Convenient shopping.
+- Multiple product categories.
+- Secure payment processing.
+- Delivery coordination.
+- Customer support.
+- Customer feedback and satisfaction.
+
+**L. Frequently Asked Questions**
+
+Provide answers to common questions about shopping, payments, deliveries, product inspections, refunds and customer support.
+
+**M. Customer Support Information**
+
+Provide clear contact and customer support information.
+
+**N. Social Media Links**
+
+Include:
+- Instagram.
+- TikTok.
+- Facebook.
+- Other configurable social media platforms.
+
+## 4.4 Landing Page Footer
+
+Include:
+- About BuyHive.
+- Contact Us.
+- Customer Support.
+- Frequently Asked Questions.
+- Terms and Conditions.
+- Privacy Policy.
+- Returns and Refunds Policy.
+- Delivery Information.
+- Seller Registration.
+- Social media links.
+
+Make all footer links functional.
+
+---
+
+# 5. CUSTOMER LOGIN AND SIGN-UP
+
+Create separate customer registration and login pages.
+
+The customer should be able to access these pages from the public landing page.
+
+## 5.1 Customer Registration
+
+Registration should collect:
+
+- Full name.
+- Email address.
+- Phone number.
+- Password.
+- Confirm password.
+
+Include:
+- Terms and Conditions acceptance.
+- Password validation.
+- Email verification.
+- Clear error messages.
+- Successful registration feedback.
+
+## 5.2 Customer Login
+
+Include:
+- Email or phone login as configured.
+- Password.
+- Remember Me option.
+- Forgot Password.
+- Login button.
+- Link to customer registration.
+
+After successful authentication, redirect the customer to the **BuyHive Shopping Dashboard**.
+
+Customer authentication must not automatically grant access to seller features.
+
+---
+
+# 6. CUSTOMER SHOPPING DASHBOARD
+
+This is the main shopping environment customers see after logging in.
+
+It should be visually rich, organised and easy to explore.
+
+The dashboard should contain the main shopping categories and discovery sections near the top.
+
+## 6.1 Dashboard Navigation
+
+Include:
+- BuyHive logo.
+- Search bar.
+- Home.
+- Shop.
+- Categories.
+- Deals and Offers.
+- Orders.
+- Wishlist.
+- Customer Account.
+- Shopping Cart icon.
+- Seller Portal link.
+- Customer Support.
+
+Unlike the public landing page, the authenticated shopping dashboard should display the shopping cart icon.
+
+## 6.2 Main Shopping Carousels
+
+Display six prominent shopping sections as horizontal carousels:
+
+1. Shop by Category.
+2. Deals and Offers.
+3. Shop by Occasion.
+4. Shop by Location.
+5. Trending.
+6. New Arrivals.
+
+The carousels should be prominent near the top of the shopping dashboard.
+
+Each carousel should include:
+- Attractive images.
+- Clear headings.
+- Short supporting text.
+- Previous arrow.
+- Next arrow.
+- View All link.
+- Clickable cards.
+- Smooth horizontal navigation.
+
+Clicking a carousel heading or View All link should open its dedicated shopping page.
+
+Clicking an individual category, occasion or product should open the appropriate destination.
+
+Do not make carousels decorative. Their navigation must work.
+
+## 6.3 Additional Dashboard Sections
+
+Below the main carousels, include:
+
+**Recommended Products**
+
+Products recommended using relevant customer activity and preferences.
+
+**Recently Viewed Products**
+
+Show products the customer has previously opened.
+
+**Best-Selling Products**
+
+Show the most successful products based on genuine sales.
+
+**Featured Products**
+
+Show selected products from the marketplace.
+
+**Personalized Recommendations**
+
+Show suggestions based on:
+- Search history.
+- Shopping interests.
+- Previous purchases.
+- Recently viewed products.
+- Selected categories.
+- Relevant shopping behaviour.
+
+**Special Offers**
+
+Show current promotional products.
+
+**Customer Rewards Preview**
+
+Show available coupons and reward information.
+
+IMPORTANT PRIVACY REQUIREMENT:
+
+Do not expose private sellers or individual seller identities on the shopping dashboard.
+
+The focus must be on products, product images, specifications, brands and prices.
+
+A product may display its manufacturer or public brand, such as Samsung, where appropriate. This is different from exposing the private seller who supplied the product.
+
+Do not show seller personal names, personal phone numbers, private seller profiles or direct seller contact information.
+
+Where appropriate, use a generic label such as:
+
+"BuyHive Verified Seller"
+
+or
+
+"BuyHive Inspected Product".
+
+---
+
+# 7. APPROVED PRODUCT CATEGORIES
+
+Use the following 17 main product categories for BuyHive.
+
+These are the initial approved top-level categories:
+
+1. Electronics.
+2. Fashion and Clothing.
+3. Beauty and Personal Care.
+4. Home, Furniture and Living.
+5. Baby, Kids and Maternity.
+6. Sports, Fitness and Outdoor.
+7. Automotive and Motorcycles.
+8. Books, Stationery and Office.
+9. Hardware, Tools and Construction.
+10. Jewellery, Luxury and Gifts.
+11. Pets and Pet Supplies.
+12. Music, Art and Entertainment.
+13. Garden, Agriculture and Farming.
+14. Travel and Luggage.
+15. Renewable Energy and Solar Equipment.
+16. Health and Wellness Products.
+17. Handmade, African and Artisan Products.
+
+Each category must support relevant subcategories.
+
+Examples:
+
+Electronics:
+- Smartphones.
+- Tablets.
+- Computers.
+- Laptops.
+- Televisions.
+- Cameras.
+- Audio equipment.
+- Gaming accessories.
+- Smart devices.
+- Computer accessories.
+
+Fashion and Clothing:
+- Women's clothing.
+- Men's clothing.
+- Children's clothing.
+- Shoes.
+- Handbags.
+- Accessories.
+- Jewellery.
+- Watches.
+- Traditional clothing.
+
+Beauty and Personal Care:
+- Skincare.
+- Haircare.
+- Cosmetics.
+- Makeup.
+- Fragrances.
+- Bath and body products.
+- Grooming equipment.
+
+Home, Furniture and Living:
+- Sofas.
+- Beds.
+- Mattresses.
+- Tables.
+- Chairs.
+- Kitchen equipment.
+- Dining products.
+- Home décor.
+- Lighting.
+- Bedding.
+- Storage.
+
+Baby, Kids and Maternity:
+- Baby clothing.
+- Diapers.
+- Feeding equipment.
+- Baby furniture.
+- Strollers.
+- Car seats.
+- Toys.
+- Maternity products.
+
+Sports, Fitness and Outdoor:
+- Gym equipment.
+- Sports clothing.
+- Sports shoes.
+- Football equipment.
+- Cycling.
+- Camping.
+- Hiking.
+- Outdoor equipment.
+
+Automotive and Motorcycles:
+- Car accessories.
+- Spare parts.
+- Motorcycle accessories.
+- Tyres.
+- Wheels.
+- Car electronics.
+- Vehicle maintenance tools.
+
+Books, Stationery and Office:
+- Textbooks.
+- Novels.
+- Educational materials.
+- Office supplies.
+- Writing materials.
+- Printers and accessories.
+- Office furniture.
+
+Hardware, Tools and Construction:
+- Hand tools.
+- Power tools.
+- Building materials.
+- Plumbing.
+- Electrical equipment.
+- Paint.
+- Construction supplies.
+- Safety equipment.
+
+Jewellery, Luxury and Gifts:
+- Jewellery.
+- Watches.
+- Gift sets.
+- Luxury accessories.
+- Personalised gifts.
+- Collectibles.
+
+Pets and Pet Supplies:
+- Pet food.
+- Toys.
+- Beds.
+- Grooming equipment.
+- Pet accessories.
+- Pet care products.
+
+Music, Art and Entertainment:
+- Musical instruments.
+- Art materials.
+- Craft products.
+- Creative equipment.
+- Musical accessories.
+
+Garden, Agriculture and Farming:
+- Seeds.
+- Seedlings.
+- Gardening equipment.
+- Irrigation systems.
+- Farm tools.
+- Agricultural equipment.
+- Animal feed.
+- Outdoor plants.
+
+Travel and Luggage:
+- Suitcases.
+- Travel bags.
+- Backpacks.
+- Travel accessories.
+- Travel organisers.
+
+Renewable Energy and Solar Equipment:
+- Solar panels.
+- Inverters.
+- Batteries.
+- Solar lighting.
+- Solar accessories.
+- Renewable-energy equipment.
+
+Health and Wellness Products:
+- Personal wellness equipment.
+- Fitness and recovery accessories.
+- Personal care equipment.
+- Non-prescription health essentials.
+- Health monitoring devices.
+
+Handmade, African and Artisan Products:
+- Handmade clothing.
+- African crafts.
+- Handmade jewellery.
+- Artwork.
+- Handmade furniture.
+- Cultural accessories.
+- Artisan products.
+
+Category management should be database-driven and expandable.
+
+Allow future categories and subcategories to be added without rewriting the entire application.
+
+Do not hardcode all product-category functionality into frontend components.
+
+For regulated, restricted or potentially hazardous products, implement appropriate marketplace restrictions and verification rules.
+
+---
+
+# 8. SHOP BY CATEGORY PAGE
+
+Create a dedicated category browsing page.
+
+Show all 17 categories in an attractive layout.
+
+Each category should include:
+- Category image.
+- Category name.
+- Short description.
+- Subcategory navigation.
+- Relevant product listings.
+
+Customers should be able to click a category and navigate to its subcategory and products.
+
+Include relevant filters and search.
+
+---
+
+# 9. DEALS AND OFFERS PAGE
+
+Create a dedicated page showing:
+- Special offers.
+- Discounted products.
+- Flash sales.
+- Seasonal deals.
+- Promotional products.
+- Limited-time offers.
+- Applicable coupon promotions.
+
+Show:
+- Original prices.
+- Current prices.
+- Discount percentages.
+- Offer expiry dates where applicable.
+- Product availability.
+
+Validate all discounts on the backend.
+
+Do not display false or expired offers.
+
+---
+
+# 10. SHOP BY OCCASION PAGE
+
+Create a dedicated occasion-based shopping page.
+
+Include configurable occasions such as:
+- Birthdays.
+- Weddings.
+- Anniversaries.
+- Graduation.
+- Valentine's Day.
+- Christmas.
+- Easter.
+- Mother's Day.
+- Father's Day.
+- Baby showers.
+- Housewarming.
+- Corporate gifting.
+- Other special occasions.
+
+Display appropriate products for each occasion.
+
+Allow administrators to add occasions in the future through the separate management system.
+
+---
+
+# 11. SHOP BY LOCATION PAGE
+
+Create a location-based shopping page.
+
+Customers should be able to discover products available in different locations.
+
+Support:
+- Country.
+- County.
+- Town.
+- City.
+- Product location.
+- Delivery availability.
+- Collection availability.
+
+For the initial Kenyan marketplace, support all 47 counties and relevant towns.
+
+Customers should be able to search and filter products by location.
+
+Do not publicly reveal sellers' exact home addresses or private premises.
+
+Show only appropriate public business or fulfilment-location information.
+
+---
+
+# 12. TRENDING AND NEW ARRIVALS PAGES
+
+Create two separate pages.
+
+### Trending Products
+
+Use actual product engagement, views, sales and purchases to identify trending products.
+
+Allow configurable promotional placement.
+
+Do not invent popularity data.
+
+### New Arrivals
+
+Show recently approved and published products.
+
+Allow filtering by category, price, location and availability.
+
+---
+
+# 13. PRODUCT LISTING PAGE
+
+Create a functional product listing page.
+
+Each product card must display:
+- Product image.
+- Product name.
+- Brand where applicable.
+- Price.
+- Discounted price where applicable.
+- Availability.
+- Relevant product location.
+- BuyHive inspection/verification status.
+- Product rating where available.
+- Add to Wishlist.
+- Add to Cart.
+- View Details.
+
+Do not display the private seller's name or direct contact information.
+
+## Filters
+
+Provide:
+- Category.
+- Subcategory.
+- Price range.
+- Brand.
+- Location.
+- Product condition.
+- Availability.
+- Ratings.
+- Discounts.
+- Delivery availability.
+- Collection availability.
+
+## Sorting
+
+Support:
+- Newest.
+- Lowest price.
+- Highest price.
+- Best-selling.
+- Highest rated.
+- Trending.
+
+Use real marketplace information.
+
+---
+
+# 14. PRODUCT DETAILS PAGE
+
+Every product must have a dedicated page.
+
+Display:
+- Product name.
+- Product images.
+- Product description.
+- Product specifications.
+- Brand.
+- Price.
+- Discount where applicable.
+- Stock availability.
+- Product variations.
+- Size.
+- Colour.
+- Model.
+- Condition.
+- Warranty information where applicable.
+- Collection availability.
+- Estimated delivery information.
+- Verified inspection status.
+- Customer ratings and reviews.
+- Related products.
+
+Include:
+- Add to Cart.
+- Buy Now.
+- Add to Wishlist.
+- Quantity selector.
+
+Maintain the seller-identity privacy rule.
+
+The customer should not receive access to the individual seller's personal identity, phone number, email address or private location.
+
+Products may display their recognised manufacturer or commercial brand.
+
+---
+
+# 15. WISHLIST
+
+Create a dedicated Wishlist page.
+
+Customers should be able to:
+- Save products.
+- Remove saved products.
+- View saved products.
+- Move products to their cart.
+- Receive availability updates where possible.
+
+Persist wishlist data for authenticated customers.
+
+---
+
+# 16. SHOPPING CART
+
+Create a functional shopping cart.
+
+Customers should be able to:
+- Add products.
+- Remove products.
+- Update quantities.
+- Select variations.
+- View prices.
+- View product subtotals.
+- Apply coupons.
+- View eligible discounts.
+- View estimated delivery charges.
+- Proceed to checkout.
+
+Support products from multiple sellers in one customer shopping session.
+
+Internally, create seller-specific fulfilment records while maintaining one coordinated customer checkout.
+
+Validate all stock and prices using the Laravel backend.
+
+---
+
+# 17. CHECKOUT
+
+Create a secure, easy-to-use checkout process.
+
+Collect:
+- Customer name.
+- Contact information.
+- Delivery address where applicable.
+- Selected fulfilment method.
+- Collection point where applicable.
+- Order notes.
+- Coupon details.
+- Payment method.
+
+Customers must be able to select:
+
+**A. Delivery**
+
+BuyHive coordinates product collection, inspection and delivery to the customer.
+
+**B. Store Collection**
+
+The customer chooses an available collection arrangement.
+
+Display:
+- Product subtotal.
+- Discounts.
+- Coupon deduction.
+- Delivery charges.
+- Taxes where configured.
+- Final amount payable.
+
+All calculations must be validated by Laravel.
+
+Do not allow the frontend to independently determine final order amounts.
+
+---
+
+# 18. PAYMENT OPTIONS
+
+Support multiple configurable payment methods.
+
+The intended payment options include:
+
+1. M-Pesa.
+2. Debit and credit cards.
+3. Visa.
+4. Mastercard.
+5. PayPal.
+6. Bank-supported online payment methods.
+7. Additional payment providers that may be integrated later.
+
+M-Pesa should be prioritised for the Kenyan marketplace.
+
+Design a flexible payment-provider integration architecture.
+
+Only display payment methods that have been properly enabled and configured for the customer's market.
+
+Where external credentials are required, create integration points and clearly document the configuration requirements.
+
+Implement:
+- Payment initiation.
+- Payment verification.
+- Transaction references.
+- Payment confirmation.
+- Failed payment handling.
+- Secure payment webhooks.
+- Refund handling where supported.
+- Transaction reconciliation.
+
+Do not mark payments as successful based solely on frontend responses.
+
+Never expose payment credentials.
+
+Use sandbox payment mode for development and clearly identify simulated transactions.
+
+Seller payouts must be managed separately from customer payment collection and must follow the agreed transaction settlement policy.
+
+---
+
+# 19. ORDER CONFIRMATION PAGE
+
+Create an Order Confirmation page.
+
+Show:
+- Order number.
+- Order details.
+- Products purchased.
+- Quantities.
+- Payment status.
+- Fulfilment method.
+- Delivery or collection information.
+- Payment summary.
+- Estimated fulfilment information.
+- Track Order button.
+- Continue Shopping button.
+
+Send confirmation notifications.
+
+---
+
+# 20. CUSTOMER ORDER HISTORY
+
+Create a dedicated Order History page.
+
+Display:
+- Order numbers.
+- Order dates.
+- Purchased products.
+- Quantities.
+- Order totals.
+- Payment status.
+- Delivery or collection status.
+- Order details.
+
+Allow customers to view individual orders.
+
+---
+
+# 21. TRACK ORDER PAGE
+
+Create an interactive order tracking page.
+
+Support order statuses such as:
+- Order placed.
+- Payment confirmed.
+- Seller notified.
+- Seller preparing product.
+- Product collected.
+- Under inspection.
+- Inspection approved.
+- Preparing for dispatch.
+- Dispatched.
+- Out for delivery.
+- Delivered.
+- Ready for collection.
+- Collected.
+- Completed.
+- Cancelled.
+- Refund processing.
+- Refunded.
+
+Show a visual timeline indicating the progress of the order.
+
+Where real-time tracking is configured, display relevant delivery progress.
+
+Do not fabricate live GPS information or delivery estimates.
+
+Customer-facing tracking must not reveal field agents' private personal information.
+
+---
+
+# 22. CUSTOMER FEEDBACK AND SATISFACTION PAGE
+
+Create a dedicated Customer Feedback and Satisfaction page.
+
+This page must be connected directly to completed orders.
+
+The feedback invitation must appear at the correct stage, depending on whether the customer chose delivery or store collection.
+
+## A. STORE COLLECTION PROCESS
+
+1. Customer selects store collection.
+2. Customer completes checkout.
+3. Payment is verified according to the payment policy.
+4. Product is prepared.
+5. Actual collection is confirmed using an authorized staff confirmation or secure collection code.
+6. BuyHive updates the order to Collected.
+7. Customer becomes eligible for feedback.
+8. Display or send the feedback invitation.
+
+Do not display the feedback form just because checkout or payment was completed. Actual receipt of the product must be confirmed.
+
+## B. DELIVERY PROCESS
+
+1. Customer selects delivery.
+2. Customer completes checkout.
+3. Payment is verified.
+4. Product is collected from the seller.
+5. Product undergoes the second inspection.
+6. Product passes inspection.
+7. BuyHive coordinates delivery.
+8. Customer receives the product.
+9. Delivery is confirmed.
+10. Customer becomes eligible for feedback.
+11. Display or send the feedback invitation.
+
+Do not send post-delivery feedback requests before delivery is confirmed.
+
+## Feedback questions
+
+Ask customers:
+
+1. Was your shopping experience smooth?
+2. Was the ordering process easy?
+3. Was payment convenient?
+4. Was the product delivered or collected on time?
+5. Did the product match its description?
+6. Was the product in good condition?
+7. Was the packaging satisfactory?
+8. Were you satisfied with BuyHive's service?
+9. Did you experience any difficulties?
+10. What would you like BuyHive to improve?
+
+Provide:
+- Five-star ratings.
+- Written comments.
+- Suggestions.
+- Complaints.
+- Optional photo uploads.
+- Overall satisfaction rating.
+- Would you shop with BuyHive again?
+
+Link each feedback record to the relevant order and purchased products.
+
+Only verified customers with eligible completed purchases can submit product reviews.
+
+Prevent duplicate feedback submissions according to a configurable review policy.
+
+Allow customers to skip feedback and return later.
+
+Use feedback information to improve product quality, inspections, delivery performance and customer experience.
+
+---
+
+# 23. COUPONS AND REWARDS
+
+Create a dedicated Coupons and Rewards section in the customer dashboard.
+
+Customers should be able to:
+
+- View available coupons.
+- Receive welcome coupons.
+- View discount codes.
+- View coupon conditions.
+- View expiry dates.
+- Apply eligible coupons during checkout.
+- View used coupons.
+- View expired coupons.
+- View available loyalty points.
+- View points history.
+- Redeem eligible rewards.
+- Receive eligible promotional offers.
+- Access birthday promotions where configured.
+- Receive returning-customer rewards.
+- Participate in approved referral campaigns where available.
+
+Build configurable reward functionality.
+
+Support:
+- Coupon codes.
+- Percentage discounts.
+- Fixed-value discounts.
+- Minimum order requirements.
+- Category-specific promotions.
+- Product-specific promotions.
+- Expiry dates.
+- Redemption limits.
+- Eligible customer restrictions.
+
+Validate all coupon and reward rules on the Laravel backend.
+
+Prevent duplicate and unauthorized coupon redemptions.
+
+---
+
+# 24. CUSTOMER ACCOUNT AND PROFILE
+
+Create a My Account page.
+
+Include:
+- Personal information.
+- Profile editing.
+- Email address.
+- Phone number.
+- Password management.
+- Saved addresses.
+- Wishlist.
+- Order History.
+- Track Order.
+- Coupons and Rewards.
+- Feedback History.
+- Support Requests.
+- Notifications.
+- Logout.
+
+Customers must only access their own account and records.
+
+---
+
+# 25. CUSTOMER SUPPORT PAGE
+
+Create a Customer Support section.
+
+Include:
+- Frequently Asked Questions.
+- Submit a Complaint.
+- Report a Problem.
+- Report a Damaged Product.
+- Missing Product.
+- Incorrect Product.
+- Payment Issues.
+- Delivery Delays.
+- Collection Issues.
+- Return Requests.
+- Refund Requests.
+- General Enquiries.
+
+Allow customers to open support tickets and monitor their status.
+
+Ticket statuses:
+- Open.
+- In Progress.
+- Awaiting Customer.
+- Resolved.
+- Closed.
+
+Do not expose seller contact details.
+
+BuyHive handles customer communication.
+
+---
+
+# 26. CONTACT US PAGE
+
+Create a dedicated Contact Us page.
+
+Include:
+- Customer enquiry form.
+- Official BuyHive contact email.
+- Configurable phone contact.
+- Business contact information.
+- Social media links.
+
+Validate form submissions and provide confirmation.
+
+---
+
+# 27. ABOUT US PAGE
+
+Create a professional About BuyHive page.
+
+Explain:
+- What BuyHive is.
+- Why the marketplace was created.
+- How it connects buyers and sellers.
+- Its commitment to quality checks.
+- How product inspections work.
+- Its approach to secure shopping.
+- Customer satisfaction.
+- Its long-term marketplace vision.
+
+Make content editable in the future through the separate management system.
+
+---
+
+# PART B: SELLER PORTAL
+
+# 28. SELLER PORTAL ACCESS
+
+Include a visible Seller Portal link in:
+
+- The public landing page.
+- The authenticated customer shopping dashboard.
+
+When a visitor clicks Seller Portal, redirect them to a dedicated seller welcome/authentication page.
+
+The seller portal must remain part of the same BuyHive website.
+
+Suggested routes:
+
+- /seller
+- /seller/login
+- /seller/register
+- /seller/dashboard
+
+Seller login and registration must remain separate from customer login and registration.
+
+Do not automatically convert customer accounts into seller accounts.
+
+---
+
+# 29. SELLER REGISTRATION AND LOGIN
+
+Allow two seller types:
+
+1. Individual sellers.
+2. Registered businesses.
+
+Seller registration should collect:
+- Full name.
+- Business name where applicable.
+- Email address.
+- Phone number.
+- Business type.
+- Business location.
+- Business description.
+- Relevant verification documents.
+- Identification or registration information where required.
+- Secure payout details.
+- Password.
+
+Include:
+- Seller Login.
+- Seller Sign Up.
+- Forgot Password.
+- Password Reset.
+- Email verification.
+- Verification status.
+
+Seller statuses:
+- Pending Verification.
+- Under Review.
+- Approved.
+- Additional Information Required.
+- Rejected.
+- Suspended.
+
+New sellers may prepare product details while verification is pending, but their products cannot become publicly available until required approval has been granted.
+
+---
+
+# 30. SELLER DASHBOARD
+
+After successful login and seller onboarding, direct sellers to their Seller Dashboard.
+
+Build a modern, professional seller workspace.
+
+Display:
+- Total products.
+- Active products.
+- Pending product approvals.
+- New orders.
+- Orders being processed.
+- Completed orders.
+- Total sales.
+- Total earnings.
+- Pending earnings.
+- Available payout balance.
+- Recent transactions.
+- Recent activity.
+- Notifications.
+
+Include clear dashboard navigation.
+
+The seller dashboard must contain these pages:
+
+1. Overview.
+2. List New Product.
+3. My Products.
+4. Orders.
+5. Sales.
+6. Earnings.
+7. Payments and Payouts.
+8. Messages.
+9. Reviews and Ratings.
+10. Promotions and Discounts.
+11. Account Settings.
+12. Seller Support.
+
+Sales and Earnings must be separate sections.
+
+---
+
+# 31. LIST NEW PRODUCT PAGE
+
+Create a complete product-submission page.
+
+When sellers click List New Product, show the following form:
+
+- Product name.
+- Main category.
+- Subcategory.
+- Brand.
+- Product description.
+- Product specifications.
+- Product condition.
+- Product photos.
+- Product variations.
+- Size where applicable.
+- Colour where applicable.
+- Model where applicable.
+- Seller's requested selling price.
+- Available quantity.
+- Product location.
+- Collection availability.
+- Fulfilment information.
+- Warranty information where applicable.
+
+Allow multiple image uploads.
+
+Provide image previews and validation.
+
+Allow sellers to save drafts.
+
+The selected main category must dynamically determine the available subcategories.
+
+---
+
+# 32. SELLER PRICING AND BUYHIVE COMMISSION
+
+The seller determines the product's advertised price.
+
+BuyHive earns an agreed commission from successful sales.
+
+The initial business model contemplates a commission range of 10–15%, but the final percentage will be determined separately.
+
+Do not hardcode a final commission percentage.
+
+Make commission rates configurable through the future management system.
+
+The calculation should work as follows:
+
+Example:
+
+Product selling price: KSh 10,000.
+
+Illustrative commission: 10%.
+
+BuyHive commission: KSh 1,000.
+
+Estimated seller proceeds: KSh 9,000.
+
+Show sellers:
+- Product selling price.
+- Applicable BuyHive commission.
+- Estimated commission.
+- Estimated seller proceeds.
+
+Do not unexpectedly add BuyHive's commission on top of the seller's advertised price.
+
+---
+
+# 33. TWO-STAGE PRODUCT INSPECTION SYSTEM
+
+This is a core BuyHive business requirement.
+
+Every product must undergo two different physical inspection stages.
+
+## STAGE ONE: PRE-LISTING INSPECTION
+
+Before a product becomes publicly visible:
+
+1. Seller submits the product listing.
+2. BuyHive records the submission.
+3. A physical inspection appointment is arranged.
+4. An authorized inspection team visits the seller's premises or an agreed safe meeting location.
+5. The actual product is inspected.
+6. Photographs and inspection findings are recorded.
+7. The product receives an inspection decision.
+8. Only approved products can be published.
+
+Possible statuses:
+- Pending Inspection.
+- Inspection Scheduled.
+- Under Inspection.
+- Approved.
+- Rejected.
+- Correction Required.
+
+Following successful inspection, the product remains with the seller until a customer purchases it.
+
+BuyHive does not need to maintain a warehouse holding all approved seller products.
+
+## STAGE TWO: PRE-DISPATCH INSPECTION
+
+When a customer purchases a product:
+
+1. The seller receives an order notification.
+2. The seller prepares the requested product.
+3. BuyHive arranges collection.
+4. An authorized BuyHive field agent collects the product.
+5. The product is taken to the approved inspection location.
+6. The inspection team checks the actual item.
+7. The inspector confirms that it corresponds to the originally approved product.
+8. Its condition, quantity, accessories and relevant requirements are checked.
+9. The product receives a pass or fail decision.
+10. Approved products proceed to packaging and delivery.
+
+When a product fails:
+- Hold it.
+- Record the failure.
+- Notify the seller.
+- Arrange replacement, correction or other appropriate resolution.
+- Keep the customer updated through BuyHive.
+
+Maintain complete inspection history.
+
+Each inspection record should contain:
+- Product ID.
+- Seller ID.
+- Inspector reference.
+- Date and time.
+- Inspection photographs.
+- Inspection checklist.
+- Findings.
+- Approval outcome.
+- Rejection reasons.
+- Related order ID for the second inspection.
+
+IMPORTANT:
+
+The seller-facing and customer-facing websites must show the appropriate inspection status.
+
+The inspection team's operational dashboard and internal management tools will be built in a separate BuyHive management website later.
+
+Do not create those internal dashboards in this project.
+
+Create the backend structure, product statuses, inspection records and integration points so that the separate management website can operate them in the future.
+
+Do not expose unrestricted product-approval functionality to sellers or customers.
+
+---
+
+# 34. SELLER PRODUCTS MANAGEMENT
+
+Create a My Products page.
+
+Allow sellers to:
+- View submitted products.
+- View approved products.
+- View rejected products.
+- View published products.
+- Edit eligible product details.
+- Update stock.
+- Manage variations.
+- View inspection outcomes.
+- Correct rejected listings.
+- Resubmit products.
+- Pause eligible listings.
+- Archive products.
+
+Ensure sellers can only view and manage their own products.
+
+---
+
+# 35. SELLER ORDERS PAGE
+
+Create a dedicated Orders page.
+
+Sellers should see orders relating to their products.
+
+Include:
+- Order reference.
+- Product name.
+- Product image.
+- Quantity.
+- Product price.
+- Payment status.
+- Order date.
+- Fulfilment instructions.
+- Preparation deadline.
+- Collection status.
+- Inspection status.
+
+IMPORTANT CUSTOMER PRIVACY REQUIREMENT:
+
+Sellers must not know the identity of customers purchasing their products.
+
+Sellers must not see:
+- Customer full names.
+- Customer personal phone numbers.
+- Customer email addresses.
+- Customer private delivery addresses.
+- Customer personal contact details.
+
+Use anonymized order references and the minimum product-fulfilment information needed by the seller.
+
+BuyHive maintains the customer relationship and handles customer communication.
+
+Sellers should prepare products and coordinate handover to authorized BuyHive collection agents.
+
+Do not provide seller-to-customer direct messaging.
+
+---
+
+# 36. SELLER SALES PAGE
+
+Create a separate Sales page.
+
+Display:
+- Gross product sales.
+- Number of completed sales.
+- Sales history.
+- Sales trends.
+- Best-performing products.
+- Sales by date.
+- Product sales reports.
+- Cancelled sales.
+- Refunded sales.
+- Relevant transaction references.
+
+Only count eligible transactions as completed sales.
+
+---
+
+# 37. SELLER EARNINGS PAGE
+
+Create a separate Earnings page.
+
+Display:
+- Gross sales.
+- BuyHive commission deductions.
+- Other applicable adjustments.
+- Refund deductions.
+- Net seller earnings.
+- Pending earnings.
+- Available earnings.
+- Paid earnings.
+- Transaction history.
+
+Sales and Earnings must never be treated as the same page.
+
+---
+
+# 38. SELLER PAYMENTS AND PAYOUTS PAGE
+
+Create a Payments and Payouts page.
+
+Allow sellers to:
+- View payout history.
+- View pending payouts.
+- View completed payouts.
+- View payment references.
+- View payout breakdowns.
+- Manage permitted payout details.
+- See relevant payment notifications.
+
+Seller payouts should follow BuyHive's agreed transaction-completion and settlement policy.
+
+Do not automatically pay a seller merely because a customer initiated checkout.
+
+The transaction must follow the required payment, fulfilment, inspection and completion rules.
+
+Use properly configured and regulated payment-provider settlement arrangements.
+
+---
+
+# 39. SELLER MESSAGES PAGE
+
+Create a seller messaging area for communication with BuyHive.
+
+Support:
+- BuyHive announcements.
+- Seller support messages.
+- Verification notifications.
+- Product inspection notifications.
+- Order-related operational messages.
+- Payment notifications.
+- Account notifications.
+
+Do not implement direct seller-to-customer messaging.
+
+---
+
+# 40. SELLER SETTINGS PAGE
+
+Include:
+- Seller profile.
+- Business information.
+- Contact details.
+- Business location.
+- Verification status.
+- Payout details.
+- Notification preferences.
+- Password management.
+- Account security.
+- Seller agreement information.
+
+Sensitive changes should require appropriate verification.
+
+---
+
+# 41. SELLER PERFORMANCE
+
+Provide seller-facing performance information where appropriate.
+
+Display:
+- Product approval rates.
+- Order completion.
+- Stock accuracy.
+- Preparation delays.
+- Cancellation history.
+- Customer ratings.
+- Policy compliance.
+
+Do not reveal the identities of customers who provided feedback.
+
+---
+
+# PART C: CUSTOMER PRIVACY AND MARKETPLACE OPERATIONS
+
+# 42. SELLER IDENTITY PRIVACY
+
+BuyHive must preserve customer privacy and maintain control of the buyer-seller relationship.
+
+Customers should interact with BuyHive rather than contacting individual sellers directly.
+
+Public product displays should focus on:
+- Product identity.
+- Product brand.
+- Product image.
+- Specifications.
+- Price.
+- Availability.
+- Product inspection status.
+- General fulfilment location where appropriate.
+
+Do not publicly reveal:
+- Individual seller names.
+- Seller personal phone numbers.
+- Seller personal email addresses.
+- Private home addresses.
+- Private seller contact information.
+
+A seller's public manufacturer or product brand may be shown as a product attribute, where appropriate.
+
+This is not permission to expose the private person supplying the product.
+
+Sellers see anonymized order references and only the information needed to prepare and hand over products.
+
+BuyHive coordinates communication and customer support.
+
+---
+
+# 43. FIELD OPERATIONS INTEGRATION
+
+BuyHive uses field agents for product collections and other logistics activities.
+
+The actual internal field operations website will be developed separately.
+
+For this project, prepare the database and backend integration structure for:
+- Field agent references.
+- Assigned collection tasks.
+- Product collection status.
+- Collection timestamps.
+- Inspection-location references.
+- Product handover records.
+- Delivery references.
+- Proof of collection.
+- Proof of delivery.
+- Operational status history.
+
+The future field operations website may provide authorized location sharing during working hours and active tasks, with appropriate staff consent and privacy protection.
+
+Do not create a public staff tracking interface.
+
+Do not expose field agents' exact personal locations to customers or sellers.
+
+---
+
+# 44. DELIVERY AND COLLECTION WORKFLOW
+
+BuyHive coordinates the movement of purchased products.
+
+The general workflow is:
+
+1. Customer places an order.
+2. Payment is confirmed.
+3. Seller prepares the product.
+4. BuyHive coordinates collection.
+5. Field agent collects the product.
+6. Product undergoes second inspection.
+7. Product passes inspection.
+8. Product is prepared for delivery.
+9. Product is delivered or made available for collection.
+10. Receipt is confirmed.
+11. Customer becomes eligible for feedback.
+12. Seller payout is reconciled according to policy.
+
+For delivery:
+- Show customer order tracking.
+- Record delivery progress.
+- Record confirmed delivery.
+- Generate appropriate notifications.
+
+For store collection:
+- Record collection availability.
+- Generate secure collection confirmation.
+- Confirm actual receipt.
+- Trigger feedback eligibility.
+
+---
+
+# 45. COUPON AND REWARD INTEGRATION
+
+Integrate the customer Coupons and Rewards functionality with:
+- Customer accounts.
+- Checkout.
+- Eligible product discounts.
+- Orders.
+- Promotional codes.
+- Rewards balances.
+- Transaction history.
+
+Prevent manipulation of rewards and discount calculations.
+
+---
+
+# PART D: BACKEND AND DATABASE
+
+# 46. DATABASE STRUCTURE
+
+Create a properly normalized MySQL database with relationships for:
+
+- Users.
+- Roles.
+- Permissions.
+- Customer profiles.
+- Seller profiles.
+- Seller verification.
+- Customer addresses.
+- Locations.
+- Categories.
+- Subcategories.
+- Products.
+- Product images.
+- Product variations.
+- Product inventory.
+- Inspection records.
+- Inspection status history.
+- Carts.
+- Cart items.
+- Wishlists.
+- Wishlist items.
+- Orders.
+- Seller-specific order items.
+- Order status history.
+- Collection records.
+- Delivery records.
+- Payment methods.
+- Payment transactions.
+- Refunds.
+- Commission records.
+- Seller earnings.
+- Seller payouts.
+- Coupons.
+- Coupon redemptions.
+- Rewards.
+- Reward transactions.
+- Customer feedback.
+- Product reviews.
+- Notifications.
+- Customer support tickets.
+- Messages between sellers and BuyHive.
+- Testimonials.
+- Promotional banners.
+- Occasion configurations.
+- Audit records.
+
+Maintain data consistency and proper access controls.
+
+Use database transactions for checkout, payment recording, order creation and other critical operations.
+
+Design the database so it can support a future separate management website without requiring a complete rebuild.
+
+---
+
+# 47. BACKEND APPLICATION ARCHITECTURE
+
+Use Laravel MVC and appropriate service-based architecture.
+
+Implement:
+- Models.
+- Controllers.
+- Form Requests.
+- Services.
+- Policies.
+- Middleware.
+- Events.
+- Listeners.
+- Notifications.
+- Jobs.
+- Database migrations.
+- Seeders.
+- API or Inertia routes as appropriate.
+
+Do not put all business logic into frontend components.
+
+All important rules must be enforced on the Laravel backend.
+
+Use secure session-based authentication with Fortify.
+
+Use appropriate database transactions and authorization checks.
+
+---
+
+# 48. CUSTOMER AND SELLER ROUTE STRUCTURE
+
+Use clear, organised routes.
+
+Suggested customer routes:
+
+- /
+- /login
+- /register
+- /dashboard
+- /shop
+- /categories
+- /categories/{category}
+- /deals
+- /occasions
+- /locations
+- /trending
+- /new-arrivals
+- /products
+- /products/{product}
+- /cart
+- /checkout
+- /order-confirmation/{order}
+- /account
+- /orders
+- /orders/{order}
+- /track-order/{order}
+- /wishlist
+- /feedback
+- /coupons-rewards
+- /support
+- /contact
+- /about
+
+Suggested seller routes:
+
+- /seller
+- /seller/login
+- /seller/register
+- /seller/dashboard
+- /seller/products
+- /seller/products/create
+- /seller/products/{product}/edit
+- /seller/orders
+- /seller/sales
+- /seller/earnings
+- /seller/payments
+- /seller/messages
+- /seller/reviews
+- /seller/promotions
+- /seller/settings
+- /seller/support
+
+Protect all authenticated routes using appropriate Laravel middleware and authorization policies.
+
+Do not create visible administrator or management routes in this project.
+
+The future management website will have its own frontend and authorized access system.
+
+---
+
+# PART E: SECURITY AND QUALITY
+
+# 49. SECURITY REQUIREMENTS
+
+Implement:
+- Secure password hashing.
+- Session protection.
+- CSRF protection.
+- Server-side validation.
+- Authorization policies.
+- Rate limiting.
+- Secure file uploads.
+- SQL injection protection.
+- XSS protection.
+- Secure payment callbacks.
+- Secure webhook verification.
+- Private document storage.
+- Sensitive-data protection.
+- Audit logging for important business actions.
+
+Never expose credentials, secret keys, payment data or private user records.
+
+Customers must only access their own orders and accounts.
+
+Sellers must only access their own product and financial records.
+
+---
+
+# 50. RESPONSIVENESS AND PERFORMANCE
+
+Ensure the website works properly on:
+- Desktop computers.
+- Laptops.
+- Tablets.
+- Smartphones.
+
+Include:
+- Responsive navigation.
+- Mobile-friendly carousels.
+- Responsive product grids.
+- Optimized images.
+- Lazy loading.
+- Efficient pagination.
+- Search performance.
+- Database indexing.
+- Background jobs where appropriate.
+- Caching where appropriate.
+
+The mobile experience is especially important.
+
+---
+
+# 51. TESTING REQUIREMENTS
+
+Create automated tests covering:
+
+### Authentication
+- Customer registration.
+- Customer login.
+- Seller registration.
+- Seller login.
+- Password reset.
+- Session handling.
+- Role restrictions.
+
+### Products
+- Product creation.
+- Category validation.
+- Image uploads.
+- Stock management.
+- First-stage inspection status.
+- Product approval status.
+- Product publishing.
+
+### Shopping
+- Product search.
+- Product filters.
+- Shopping cart.
+- Wishlist.
+- Multi-seller cart.
+- Checkout.
+- Coupon validation.
+
+### Payments
+- Payment initiation.
+- Payment verification.
+- Payment failures.
+- Duplicate webhook protection.
+- Transaction reconciliation.
+
+### Orders
+- Order creation.
+- Seller-specific fulfilment records.
+- Seller privacy restrictions.
+- Second-stage inspection.
+- Delivery status.
+- Collection confirmation.
+
+### Feedback
+- Collection feedback eligibility.
+- Delivery feedback eligibility.
+- Prevention of premature feedback.
+- Duplicate review prevention.
+- Customer feedback privacy.
+
+### Seller finance
+- Commission calculations.
+- Earnings calculations.
+- Payout records.
+- Refund adjustments.
+
+### Security
+- Unauthorized access.
+- Customer data privacy.
+- Seller data isolation.
+- Secure file upload.
+- Role permissions.
+
+Do not mark the application production-ready if essential tests are failing.
+
+---
+
+# PART F: DEVELOPMENT PLAN
+
+# 52. BUILD BUYHIVE IN PHASES
+
+Do not attempt to generate the entire marketplace in one enormous code-generation response.
+
+Build it systematically and maintain the established architecture across development sessions.
+
+## PHASE 1: PROJECT FOUNDATION
+
+Implement:
+- Laravel project setup.
+- PHP configuration.
+- Vue 3 setup.
+- Inertia integration.
+- Fortify authentication.
+- MySQL connection.
+- Database migrations.
+- Customer and seller roles.
+- Shared design system.
+- Global navigation.
+
+Do not install Sanctum.
+
+## PHASE 2: PUBLIC LANDING PAGE
+
+Implement:
+- BuyHive logo.
+- Landing page navigation.
+- Search bar.
+- Customer Login and Sign Up links.
+- Seller Portal link.
+- Hero section.
+- Featured products.
+- Best-selling products.
+- Testimonials.
+- Statistics and facts.
+- How BuyHive Works.
+- FAQs.
+- Contact support.
+- Social media links.
+- Footer.
+
+Do not show a cart icon on the public landing page.
+
+## PHASE 3: CUSTOMER SHOPPING EXPERIENCE
+
+Implement:
+- Customer dashboard.
+- Search.
+- Shop by Category.
+- Deals and Offers.
+- Shop by Occasion.
+- Shop by Location.
+- Trending.
+- New Arrivals.
+- Recommended Products.
+- Recently Viewed Products.
+- Best-Selling Products.
+- Featured Products.
+- Responsive carousels.
+
+## PHASE 4: PRODUCT CATALOGUE
+
+Implement:
+- All 17 main product categories.
+- Subcategories.
+- Product listing.
+- Product details.
+- Product photographs.
+- Product variations.
+- Search filters.
+- Wishlist.
+
+## PHASE 5: SHOPPING TRANSACTIONS
+
+Implement:
+- Shopping Cart.
+- Checkout.
+- Multiple payment options.
+- Order Confirmation.
+- Order History.
+- Track Order.
+
+## PHASE 6: SELLER PORTAL
+
+Implement:
+- Seller login.
+- Seller registration.
+- Seller verification status.
+- Seller dashboard.
+- List New Product.
+- My Products.
+- Orders.
+- Sales.
+- Earnings.
+- Payments and Payouts.
+- Messages.
+- Reviews.
+- Promotions.
+- Settings.
+- Seller Support.
+
+## PHASE 7: PRODUCT INSPECTION INTEGRATION
+
+Implement the backend workflow for:
+- Pre-listing inspections.
+- Product inspection records.
+- Inspection statuses.
+- Product approval states.
+- Post-purchase inspections.
+- Collection records.
+- Inspection failure handling.
+- Dispatch eligibility.
+
+The internal inspection and field operations dashboards belong to the separate future management website.
+
+## PHASE 8: CUSTOMER SATISFACTION AND LOYALTY
+
+Implement:
+- Customer Feedback and Satisfaction.
+- Delivery confirmation.
+- Collection confirmation.
+- Feedback eligibility.
+- Customer reviews.
+- Coupons.
+- Rewards.
+- Reward history.
+- Customer notifications.
+
+## PHASE 9: TESTING AND DEPLOYMENT PREPARATION
+
+Implement:
+- Automated testing.
+- Security testing.
+- Database validation.
+- Payment integration testing.
+- Responsive testing.
+- Performance optimization.
+- Error handling.
+- Deployment documentation.
+
+---
+
+# 53. DEVELOPMENT RULES
+
+1. Use PHP Laravel as the backend.
+2. Use Vue 3 and Inertia for the integrated frontend.
+3. Use Laravel Fortify and session authentication.
+4. Do not use Sanctum.
+5. Do not introduce Node.js, Firebase or Python as replacements for Laravel.
+6. Keep Buyer and Seller experiences separate.
+7. Do not build the management website in this project.
+8. Do not display an administrator or management link anywhere in the customer or seller interfaces.
+9. Do not expose seller personal identities to customers.
+10. Do not expose customer personal information to sellers.
+11. Do not allow product listings to bypass the required inspection and approval workflow.
+12. Do not trigger feedback before the customer receives the product.
+13. Do not fabricate product, sales, customer or payment data.
+14. Do not hardcode final commission percentages.
+15. Do not simulate successful real payments.
+16. Ensure every major button and form has working functionality.
+17. Preserve completed functionality while building new features.
+18. Use database-driven information rather than static frontend-only content.
+19. Maintain consistent BuyHive branding.
+20. Document all important implementation decisions.
+
+# 54. REQUIRED PROJECT DELIVERABLES
+
+Generate the following:
+
+1. Complete Laravel project.
+2. Vue 3 frontend.
+3. Inertia integration.
+4. Laravel Fortify authentication.
+5. MySQL database schema.
+6. Database migrations.
+7. Models and relationships.
+8. Controllers.
+9. Backend services.
+10. Middleware and policies.
+11. Customer pages.
+12. Seller portal pages.
+13. Reusable Vue components.
+14. Shopping cart functionality.
+15. Checkout functionality.
+16. Multi-provider payment architecture.
+17. Product listing system.
+18. Product inspection workflow.
+19. Order management.
+20. Commission and seller earnings calculations.
+21. Coupons and rewards.
+22. Customer feedback system.
+23. Notifications.
+24. Automated tests.
+25. Environment configuration template.
+26. Installation guide.
+27. Development guide.
+28. Deployment instructions.
+
+# 55. HOW TO START THE PROJECT
+
+Begin by producing a clear technical implementation plan.
+
+Then:
+
+1. Explain the proposed project architecture.
+2. Show the complete folder structure.
+3. Establish the Laravel and Vue 3 environment.
+4. Configure MySQL.
+5. Implement Fortify authentication.
+6. Create customer and seller roles.
+7. Establish the main database tables.
+8. Build the initial shared design system.
+9. Implement the landing page.
+10. Continue through the development phases.
+
+For every phase:
+- Identify files created.
+- Identify files modified.
+- Provide complete source code.
+- Explain important technical decisions.
+- Connect frontend components to backend functionality.
+- Run appropriate tests.
+- Fix errors before continuing.
+- Maintain a record of completed and pending tasks.
+
+If output limits prevent completing a phase in one response, continue in clearly labelled stages. Do not discard previous working code or restart the project without a valid reason.
+
+Do not generate only a visual prototype and claim that the marketplace is functional.
+
+The final application must be capable of running as a real Laravel and Vue 3 project once the required environment and service credentials are configured.
+
+---
+
+# FINAL PROJECT VISION
+
+Build **BUYHIVE** as a complete, modern, trusted, multi-vendor e-commerce marketplace.
+
+Customers must be able to discover products, browse categories, explore deals, shop by occasion and location, purchase products, pay through supported payment methods, track their orders, provide feedback and access rewards.
+
+Sellers must be able to register, list products, submit products for inspection, manage orders, monitor sales, view earnings and receive payouts.
+
+BuyHive must maintain control over the customer relationship, product-inspection process, order coordination, delivery coordination and customer satisfaction.
+
+The system must use PHP Laravel, Vue 3, Inertia, MySQL and Laravel Fortify.
+
+The current project must contain only the customer marketplace and Seller Portal. The internal management website will be developed as a separate application later.
+
+**The objective is to create a genuine, scalable marketplace ecosystem under the BUYHIVE brand, not an ordinary inventory-owning online shop.**
