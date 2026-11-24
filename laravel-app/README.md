@@ -1,58 +1,97 @@
-# BUYHIVE — Multi-Vendor E-Commerce Marketplace (Laravel + Vue 3 + Inertia + Fortify + MySQL)
+# BUYHIVE — Multi-Vendor E-Commerce Marketplace
 
-This directory contains the complete **PHP 8.3 / Laravel 12+ / Vue 3 + TypeScript + Inertia.js + Laravel Fortify + MySQL** source codebase for **BuyHive**.
+Laravel 12, PHP 8.5-compatible dependency lock, Vue 3, TypeScript, Inertia.js, Fortify and MySQL.
 
-> **Environment Note**: Because the Google AI Studio preview container runs Node.js/Vite without PHP, Composer, or MySQL binaries, the live interactive preview on port 3000 mirrors every BuyHive customer & seller workflow in `/src/`, while `/laravel-app/` holds the authentic Laravel + Vue/Inertia + Fortify + MySQL backend & frontend source code ready for local/production PHP hosting.
+The repository contains a root Vite preview application and the Laravel application in `laravel-app/`. The Laravel application is the server-backed implementation; the root preview is a separate front-end experience.
 
-## 1. Architecture & Privacy Boundaries
-- **Authentication**: Laravel Fortify session-based browser authentication (`SESSION_DRIVER=database`, encrypted cookies, CSRF protection). **No Sanctum or Passport is installed or used.**
-- **Role Isolation**: `EnsureCustomerRole` and `EnsureSellerRole` strictly separate Buyer and Seller routes.
-- **No Internal Admin UI**: Management, inspection staff, and field-ops portals live in a separate project. This repository exposes only headless HMAC-signed integration endpoints (`/api/integration/management/*`) via `VerifyManagementIntegrationSignature`.
-- **Two-Stage Physical Inspection**:
-  - **Stage 1 (Pre-Listing)**: `Product::scopePubliclyListable()` ensures listings cannot go live until `stage_one_status = approved` and the seller's `verification_status = approved`.
-  - **Stage 2 (Pre-Dispatch)**: `InspectionWorkflowService::recordStageTwoOutcome()` verifies collected items prior to dispatch and supports failure holds.
-- **Seller & Customer Privacy**:
-  - Customer endpoints never return seller personal names, emails, phones, or home addresses.
-  - Seller order endpoints (`SellerPortalController::orders`) return anonymized order references and fulfilment instructions only.
+## 1. Architecture and privacy boundaries
 
-## 2. Folder Structure
-- `app/Http/Controllers/` — Customer, Seller, and Management Integration controllers
-- `app/Http/Middleware/` — `EnsureCustomerRole`, `EnsureSellerRole`, `VerifyManagementIntegrationSignature`
-- `app/Models/` — Eloquent models (`User`, `Product`, `Order`, `SellerProfile`, `SellerOrderItem`, etc.)
-- `app/Policies/` — `ProductPolicy`, `OrderPolicy`
-- `app/Providers/FortifyServiceProvider.php` — Role-aware Fortify login/register & rate limits
-- `app/Services/` — `CheckoutService`, `CommissionService`, `InspectionWorkflowService`, `PaymentGatewayService`, `FeedbackEligibilityService`
-- `config/buyhive.php` — Configurable commission rates, payment provider toggles, feedback policy
-- `database/migrations/` — Normalized MySQL schema (35+ tables)
-- `database/seeders/` — `CategorySeeder` (17 categories + subcategories), `KenyaLocationSeeder` (all 47 counties)
-- `resources/js/` — Vue 3 + TypeScript + Inertia.js pages
-- `routes/` — `web.php` & `api.php`
-- `tests/Feature/` — Automated PHPUnit tests
+- **Authentication:** Laravel Fortify session-based browser authentication, CSRF protection and encrypted session cookies. No Sanctum or Passport is installed.
+- **Role isolation:** `EnsureCustomerRole` and `EnsureSellerRole` protect customer and seller routes.
+- **Separate management system:** no internal admin, inspection-staff or field-operations dashboard is included. The app exposes HMAC-protected integration endpoints for a future separate management application.
+- **Two-stage inspection:** Stage 1 controls pre-listing publication; Stage 2 holds order items until pre-dispatch inspection passes.
+- **Customer privacy:** customer-facing product projections omit seller personal names, phone numbers, email addresses and home addresses.
+- **Seller privacy:** seller order projections expose anonymized order references and fulfilment instructions, not customer identity or contact details.
 
-## 3. Installation Guide
-```bash
-cd laravel-app
+## 2. Laravel application structure
+
+- `app/Http/Controllers/` — customer, seller and management-integration controllers
+- `app/Http/Middleware/` — customer/seller role guards, HMAC integration signature verification and Inertia shared props
+- `app/Models/` — Eloquent models for accounts, catalog, carts, orders, inspection, payments, commissions, payouts and feedback
+- `app/Policies/` — product ownership and customer order ownership policies
+- `app/Providers/` — application and Fortify providers
+- `app/Services/` — checkout, commission, inspection, payment transaction and feedback eligibility services
+- `config/` — Laravel runtime configuration and BuyHive marketplace configuration
+- `database/migrations/` — marketplace schema plus Laravel session, cache, queue and password-reset tables
+- `database/seeders/` — category taxonomy and all 47 Kenyan counties
+- `resources/js/` — Vue 3 and Inertia entry point and pages
+- `routes/` — customer/seller web routes and signed management integration API routes
+- `tests/Feature/` — backend feature tests
+
+## 3. Local installation
+
+From PowerShell:
+
+```powershell
+cd C:\Users\elite\BuyHive\laravel-app
 composer install
 npm install
-cp .env.example .env
+Copy-Item .env.example .env
 php artisan key:generate
-# Configure MySQL credentials & M-Pesa Daraja / Stripe / PayPal keys in .env
+```
+
+Edit `.env` and configure the MySQL database credentials. Keep real API secrets out of Git. The default payment configuration is sandbox-oriented.
+
+Run the migrations and seeders once:
+
+```powershell
 php artisan migrate --seed
-php artisan db:seed --class=CategorySeeder
-php artisan db:seed --class=KenyaLocationSeeder
 ```
 
-## 4. Local Development & Testing
-```bash
+The `DatabaseSeeder` runs both `KenyaLocationSeeder` and `CategorySeeder`; do not run them again separately on the same database unless they are made idempotent first.
+
+## 4. Development and validation
+
+Run the Laravel backend:
+
+```powershell
 php artisan serve
-npm run dev
-php artisan queue:work
-php artisan test
 ```
 
-## 5. Production Deployment Checklist
-1. Set `APP_ENV=production`, `APP_DEBUG=false`, and `BUYHIVE_SANDBOX_PAYMENTS=false`.
+In a second terminal, run the Laravel Vue/Inertia development server:
+
+```powershell
+cd C:\Users\elite\BuyHive\laravel-app
+npm run dev
+```
+
+Useful validation commands:
+
+```powershell
+composer validate --no-check-publish
+composer check-platform-reqs
+php artisan route:list
+php artisan test
+npm run build
+```
+
+The GitHub Actions workflow checks the root frontend, builds the Laravel Vue/Inertia frontend, validates PHP syntax and Composer dependencies, boots Laravel, lists routes, and runs feature tests against an in-memory SQLite database. CI uses PHP 8.5 to match the committed dependency lock.
+
+## 5. Current implementation boundaries
+
+The Laravel bootstrap, runtime configuration, model classes, migration support tables and test harness are present. The CI suite currently verifies role separation, Stage-1 listing eligibility, Stage-2 inspection release, feedback eligibility and commission calculation.
+
+Some Inertia routes do not yet have their dedicated production screens. The resolver intentionally displays an explicit placeholder instead of throwing a missing-component error. Those customer and seller workflows still need their individual UI implementations.
+
+The payment service currently records local payment transactions and reconciles callbacks. Live provider API requests, provider-specific callback authentication/signature verification and production payment certification must be completed before enabling real-money payments. Do not set sandbox payments to false until those integrations have been independently tested.
+
+## 6. Production readiness checklist
+
+1. Set `APP_ENV=production`, `APP_DEBUG=false`, and use a strong unique `APP_KEY`.
 2. Configure HTTPS/TLS and `SESSION_SECURE_COOKIE=true`.
-3. Run `npm run build`, `php artisan config:cache`, `php artisan route:cache`, `php artisan view:cache`.
-4. Run Supervisor for `php artisan queue:work` to process notifications and payment reconciliation jobs.
-5. Configure M-Pesa Daraja webhook callback URL to `https://your-domain/api/webhooks/mpesa`.
+3. Configure production database, mail, queue, private file storage and backups.
+4. Complete and test all dedicated customer and seller Inertia screens.
+5. Implement and verify live payment-provider requests and callback authentication.
+6. Run `npm run build`, `php artisan config:cache`, `php artisan route:cache` and `php artisan view:cache`.
+7. Configure supervised queue workers and monitoring.
+8. Complete security review and end-to-end checkout, fulfilment, refund and payout testing before launch.
