@@ -15,36 +15,53 @@ permissions:
 
 jobs:
   frontend:
-    name: Frontend dependency install, type-check and production build
+    name: Root frontend type-check and production build
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Install frontend dependencies
+      - name: Install root frontend dependencies
         run: npm install
-      - name: Type-check frontend
+      - name: Type-check root frontend
         run: npm run lint
-      - name: Build frontend
+      - name: Build root frontend
         run: npm run build
 
-  backend-php-syntax:
-    name: Laravel PHP syntax validation
+  laravel-frontend:
+    name: Laravel Vue and Inertia production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laravel-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install Laravel frontend dependencies
+        run: npm install
+      - name: Build Laravel frontend
+        run: npm run build
+
+  backend:
+    name: Laravel application, migrations and feature tests
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3
           tools: composer:v2
-      - name: Validate Composer manifest
+      - name: Validate Composer manifest and lock file
         working-directory: laravel-app
-        run: composer validate --no-check-publish --no-check-lock
+        run: composer validate --no-check-publish
+      - name: Install PHP dependencies
+        working-directory: laravel-app
+        run: composer install --no-interaction --prefer-dist
       - name: Check PHP syntax
         shell: bash
         run: |
@@ -52,3 +69,9 @@ jobs:
           while IFS= read -r -d '' file; do
             php -l "$file"
           done < <(find laravel-app -type f -name '*.php' -not -path '*/vendor/*' -print0)
+      - name: Boot Laravel and list routes
+        working-directory: laravel-app
+        run: php artisan route:list
+      - name: Run backend feature tests
+        working-directory: laravel-app
+        run: php artisan test
