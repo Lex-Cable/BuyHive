@@ -75,6 +75,6 @@ jobs:
       - name: Boot Laravel and list routes
         working-directory: laravel-app
         run: php artisan route:list
-      - name: Run backend feature tests
+      - name: Run backend feature tests with diagnostics
         working-directory: laravel-app
-        run: php artisan test
+        run: php artisan test --display-warnings --display-deprecations
