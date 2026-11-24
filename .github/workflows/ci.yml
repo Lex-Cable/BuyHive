@@ -1,6 +1,7 @@
 name: BuyHive CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -14,7 +15,7 @@ permissions:
 
 jobs:
   frontend:
-    name: Frontend type-check and production build
+    name: Frontend dependency install, type-check and production build
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
