@@ -1,0 +1,54 @@
+name: BuyHive CI
+
+on:
+  push:
+    branches:
+      - main
+      - chore/laravel-test-readiness
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend type-check and production build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm install
+      - name: Type-check frontend
+        run: npm run lint
+      - name: Build frontend
+        run: npm run build
+
+  backend-php-syntax:
+    name: Laravel PHP syntax validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Validate Composer manifest
+        working-directory: laravel-app
+        run: composer validate --no-check-publish --no-check-lock
+      - name: Check PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            php -l "$file"
+          done < <(find laravel-app -type f -name '*.php' -not -path '*/vendor/*' -print0)
