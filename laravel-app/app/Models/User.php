@@ -13,21 +13,54 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'phone', 'password', 'primary_role'];
-    protected $hidden = ['password', 'remember_token'];
+    protected $fillable = [
+        'name',
+        'email',
+        'phone',
+        'password',
+        'primary_role',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
 
     protected function casts(): array
     {
-        return ['email_verified_at' => 'datetime', 'password' => 'hashed'];
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
 
-    public function isCustomer(): bool { return $this->primary_role === 'customer'; }
-    public function isSeller(): bool { return $this->primary_role === 'seller'; }
-    public function customerProfile(): HasOne { return $this->hasOne(CustomerProfile::class); }
-    public function sellerProfile(): HasOne { return $this->hasOne(SellerProfile::class); }
-    public function orders(): HasMany { return $this->hasMany(Order::class); }
-    public function addresses(): HasMany { return $this->hasMany(CustomerAddress::class); }
-    public function carts(): HasMany { return $this->hasMany(Cart::class); }
-    public function wishlist(): HasOne { return $this->hasOne(Wishlist::class); }
-    public function rewardTransactions(): HasMany { return $this->hasMany(RewardTransaction::class); }
+    public function isCustomer(): bool
+    {
+        return $this->primary_role === 'customer';
+    }
+
+    public function isSeller(): bool
+    {
+        return $this->primary_role === 'seller';
+    }
+
+    public function customerProfile(): HasOne
+    {
+        return $this->hasOne(CustomerProfile::class);
+    }
+
+    public function sellerProfile(): HasOne
+    {
+        return $this->hasOne(SellerProfile::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(CustomerAddress::class);
+    }
 }
