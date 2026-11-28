@@ -1,12 +1,12 @@
 <?php
 
-use App\\Http\\Controllers\\Api\\PublicCatalogController;
-use App\\Http\\Controllers\\Api\\StorefrontController;
-use App\\Http\\Controllers\\Integration\\ManagementSyncController;
-use App\\Http\\Middleware\\VerifyManagementIntegrationSignature;
-use App\\Services\\PaymentGatewayService;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Route;
+use App\Http\Controllers\Api\PublicCatalogController;
+use App\Http\Controllers\Api\StorefrontController;
+use App\Http\Controllers\Integration\ManagementSyncController;
+use App\Http\Middleware\VerifyManagementIntegrationSignature;
+use App\Services\PaymentGatewayService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 // Public React storefront catalogue.
 Route::get('/catalog', [PublicCatalogController::class, 'index']);

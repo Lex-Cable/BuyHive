@@ -254,14 +254,14 @@ export const CheckoutPage: React.FC = () => {
   const deliveryFee = fulfilmentMethod === 'delivery' ? (countySlug === 'nairobi' ? 350 : 650) : 0;
   const totalPayable = Math.max(0, subtotal - (couponCheck.valid ? couponCheck.discount : 0) + deliveryFee);
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (fulfilmentMethod === 'delivery' && (!town.trim() || !street.trim())) {
       setError('Please enter your delivery town and street / apartment details.');
       return;
     }
-    const res = placeCheckoutOrder({
+    const res = await placeCheckoutOrder({
       customerName,
       customerPhone,
       customerEmail,

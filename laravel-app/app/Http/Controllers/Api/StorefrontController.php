@@ -101,16 +101,24 @@ class StorefrontController extends Controller
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'email' => ['required','email'],
+            'email_or_phone' => ['required','string','max:255'],
             'password' => ['required','string'],
             'role' => ['required','in:customer,seller'],
         ]);
 
-        if (!Auth::attempt([
-            'email' => strtolower($data['email']),
+        $identity = User::query()
+            ->where(function ($query) use ($data) {
+                $query->where('email', strtolower($data['email_or_phone']))
+                    ->orWhere('phone', $data['email_or_phone']);
+            })
+            ->where('primary_role', $data['role'])
+            ->first();
+
+        if (!$identity || !Auth::attempt([
+            'email' => $identity->email,
             'password' => $data['password'],
             'primary_role' => $data['role'],
-        ], (bool) $request->boolean('remember'))) {
+        ], (bool) ($data['remember'] ?? false))) {
             throw ValidationException::withMessages(['email' => 'The supplied credentials do not match this account type.']);
         }
 
@@ -303,8 +311,10 @@ class StorefrontController extends Controller
     {
         $data=$request->validate(['label'=>['required','string','max:64'],'location_id'=>['required','exists:locations,id'],'town'=>['required','string','max:100'],'street_address'=>['required','string','max:255'],'is_default'=>['sometimes','boolean']]);
         $address=DB::transaction(function()use($request,$data){
-            if(($data['is_default']??false) || !$request->user()->addresses()->exists()) $request->user()->addresses()->update(['is_default'=>false]);
-            return $request->user()->addresses()->create($data+['is_default'=>($data['is_default']??false)||!$request->user()->addresses()->exists()]);
+            $isFirst = !$request->user()->addresses()->exists();
+            $makeDefault = (bool)($data['is_default'] ?? false) || $isFirst;
+            if ($makeDefault) $request->user()->addresses()->update(['is_default'=>false]);
+            return $request->user()->addresses()->create($data+['is_default'=>$makeDefault]);
         });
         return response()->json(['data'=>$address->load('location')],201);
     }
@@ -426,7 +436,7 @@ class StorefrontController extends Controller
             'specifications'=>['nullable','array'],'condition'=>['required','in:New,Refurbished (Certified),Handcrafted'],
             'price'=>['required','numeric','min:50'],'original_price'=>['nullable','numeric','gt:price'],'town'=>['required','string','max:100'],
             'delivery_available'=>['required','boolean'],'collection_available'=>['required','boolean'],'warranty_info'=>['nullable','string','max:255'],
-            'stock'=>['required','integer','min:0','max:100000'],'images'=>['nullable','array','max:8'],'images.*'=>['string','max:2048'],
+            'stock'=>['required','integer','min:0','max:100000'],'images'=>['nullable','array','max:8'],'images.*'=>['string'],
             'variations'=>['nullable','array','max:50'],'save_as_draft'=>['sometimes','boolean'],
         ]);
         abort_unless((int)DB::table('subcategories')->where('id',$data['subcategory_id'])->value('category_id')===(int)$data['category_id'],422);
@@ -439,7 +449,21 @@ class StorefrontController extends Controller
                 'delivery_available'=>$data['delivery_available'],'collection_available'=>$data['collection_available'],'warranty_info'=>$data['warranty_info']??null,
                 'stage_one_status'=>($data['save_as_draft']??false)?'draft':'pending_inspection','is_published'=>false,
             ]);
-            foreach(($data['images']??[]) as $i=>$path) $product->images()->create(['storage_path'=>$path,'sort_order'=>$i]);
+            foreach(($data['images']??[]) as $i=>$imageData) {
+                if (!preg_match('/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+\/]+=*)$/', $imageData, $matches)) {
+                    throw ValidationException::withMessages(['images' => 'Product images must be valid JPEG, PNG or WebP uploads.']);
+                }
+                $bytes = base64_decode($matches[2], true);
+                if ($bytes === false || strlen($bytes) > 5 * 1024 * 1024) {
+                    throw ValidationException::withMessages(['images' => 'Each product image must be smaller than 5 MB.']);
+                }
+                $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
+                $extension = match ($mime) { 'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', default => null };
+                if (!$extension) throw ValidationException::withMessages(['images' => 'Unsupported product image format.']);
+                $path = 'products/' . $seller->id . '/' . Str::uuid() . '.' . $extension;
+                Storage::disk('public')->put($path, $bytes);
+                $product->images()->create(['storage_path'=>$path,'sort_order'=>$i]);
+            }
             $product->inventories()->create(['available_quantity'=>$data['stock'],'reserved_quantity'=>0]);
             foreach(($data['variations']??[]) as $v){
                 $variation=$product->variations()->create(['label'=>$v['label'],'size'=>$v['size']??null,'colour'=>$v['colour']??null,'model'=>$v['model']??null,'price_delta'=>$v['price_delta']??0]);
@@ -550,7 +574,8 @@ class StorefrontController extends Controller
             'id'=>(string)$order->id,'order_number'=>$order->order_number,'customer_id'=>(string)$order->user_id,
             'fulfilment_method'=>$order->fulfilment_method,'delivery_town'=>$order->delivery_town,
             'delivery_street'=>$order->delivery_street,'collection_hub_name'=>$order->collection_hub_name,
-            'collection_code'=>$order->collection_code,'collection_confirmed'=>$order->collection_confirmed,'delivery_confirmed'=>$order->delivery_confirmed,
+            // Collection codes are delivered through the configured customer notification channel, never returned by the API.
+            'collection_code'=>null,'collection_confirmed'=>$order->collection_confirmed,'delivery_confirmed'=>$order->delivery_confirmed,
             'payment_method'=>$order->payment_method,'payment_status'=>$order->payment_status,'payment_reference'=>$order->paymentTransactions->first()?->transaction_reference,
             'subtotal'=>(float)$order->subtotal,'coupon_discount'=>(float)$order->coupon_discount,'delivery_fee'=>(float)$order->delivery_fee,'total_amount'=>(float)$order->total_amount,
             'status'=>$order->status,'feedback_submitted'=>$order->feedback_submitted,'created_at'=>$order->created_at?->toISOString(),

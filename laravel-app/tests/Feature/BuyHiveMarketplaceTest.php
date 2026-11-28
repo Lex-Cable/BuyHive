@@ -207,6 +207,58 @@ class BuyHiveMarketplaceTest extends TestCase
         $this->assertStringNotContainsString('Private Seller Company', $response->getContent());
     }
 
+    public function test_storefront_customer_registration_creates_a_real_session_and_profile(): void
+    {
+        $response = $this->postJson('/api/storefront/register', [
+            'name' => 'Test Customer',
+            'email' => 'buyer@example.test',
+            'phone' => '+254700111222',
+            'password' => 'SecurePass2026!',
+            'password_confirmation' => 'SecurePass2026!',
+            'role' => 'customer',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('user.role', 'customer')
+            ->assertJsonPath('user.name', 'Test Customer');
+
+        $this->assertDatabaseHas('users', ['email' => 'buyer@example.test', 'primary_role' => 'customer']);
+        $this->assertDatabaseHas('customer_profiles', ['loyalty_points' => 150]);
+        $this->getJson('/api/storefront/session')
+            ->assertOk()
+            ->assertJsonPath('authenticated', true)
+            ->assertJsonPath('user.email', 'buyer@example.test');
+    }
+
+    public function test_storefront_login_rejects_wrong_portal_role_and_accepts_phone_identity(): void
+    {
+        $customer = User::factory()->create([
+            'name' => 'Phone Buyer',
+            'email' => 'phonebuyer@example.test',
+            'phone' => '+254700123456',
+            'password' => bcrypt('SecurePass2026!'),
+            'primary_role' => 'customer',
+        ]);
+
+        $this->postJson('/api/storefront/login', [
+            'email_or_phone' => '+254700123456',
+            'password' => 'SecurePass2026!',
+            'role' => 'seller',
+        ])->assertUnprocessable();
+
+        $this->postJson('/api/storefront/login', [
+            'email_or_phone' => '+254700123456',
+            'password' => 'SecurePass2026!',
+            'role' => 'customer',
+        ])->assertOk()->assertJsonPath('user.id', (string) $customer->id);
+    }
+
+    public function test_storefront_cart_and_orders_require_an_authenticated_session(): void
+    {
+        $this->getJson('/api/storefront/cart')->assertUnauthorized();
+        $this->getJson('/api/storefront/orders')->assertUnauthorized();
+    }
+
     private function catalogFixtures(): array
     {
         $category = Category::create(['name' => 'Electronics', 'slug' => 'electronics']);

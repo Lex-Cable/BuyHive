@@ -15,11 +15,11 @@ export const CustomerAuthPage: React.FC<{ mode: 'login' | 'register' | 'forgot' 
   const [error, setError] = useState('');
   const [resetSent, setResetSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (mode === 'login') {
-      const res = loginCustomer(email, password);
+      const res = await loginCustomer(email, password);
       if (!res.ok) {
         setError(res.error || 'Unable to sign in.');
         return;
@@ -34,7 +34,7 @@ export const CustomerAuthPage: React.FC<{ mode: 'login' | 'register' | 'forgot' 
         setError('Please accept the BuyHive Terms and Conditions.');
         return;
       }
-      const res = registerCustomer({ fullName, email, phone, password });
+      const res = await registerCustomer({ fullName, email, phone, password });
       if (!res.ok) {
         setError(res.error || 'Registration failed.');
         return;

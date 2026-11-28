@@ -33,7 +33,7 @@ import {
   INITIAL_TICKETS,
 } from '../data/seedCatalog';
 import { CATEGORIES, IMG_HERO } from '../data/categories';
-import { fetchPublicCatalog } from '../lib/buyhiveApi';
+import { fetchPublicCatalog, getStorefrontSession, loginStorefront, logoutStorefront, registerStorefront, fetchStorefrontMeta, fetchApiCart, addApiCartItem, updateApiCartItem, deleteApiCartItem, fetchApiOrders, checkoutApiOrder, createApiSellerProduct, type ApiUser, type ApiOrder } from '../lib/buyhiveApi';
 
 export function formatKSh(amount: number): string {
   return `KSh ${Math.round(amount).toLocaleString('en-KE')}`;
@@ -66,10 +66,10 @@ interface MarketplaceContextValue extends MarketplaceState {
   clearToast: () => void;
   notify: (text: string, tone?: 'success' | 'error' | 'info') => void;
   // Auth (Strictly Separated)
-  loginCustomer: (emailOrPhone: string, password: string) => { ok: boolean; error?: string };
-  registerCustomer: (data: { fullName: string; email: string; phone: string; password: string }) => { ok: boolean; error?: string };
+  loginCustomer: (emailOrPhone: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  registerCustomer: (data: { fullName: string; email: string; phone: string; password: string }) => Promise<{ ok: boolean; error?: string }>;
   logoutCustomer: () => void;
-  loginSeller: (email: string, password: string) => { ok: boolean; error?: string };
+  loginSeller: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   registerSeller: (data: {
     fullName: string;
     businessName: string;
@@ -83,7 +83,7 @@ interface MarketplaceContextValue extends MarketplaceState {
     payoutMethod: 'mpesa_till' | 'mpesa_phone' | 'bank_transfer';
     payoutAccountLabel: string;
     password: string;
-  }) => { ok: boolean; error?: string };
+  }) => Promise<{ ok: boolean; error?: string }>;
   logoutSeller: () => void;
   // Customer Actions
   recordProductView: (productId: string) => void;
@@ -108,7 +108,7 @@ interface MarketplaceContextValue extends MarketplaceState {
     couponCode?: string;
     paymentMethod: PaymentMethodId;
     mpesaPhone?: string;
-  }) => { ok: boolean; order?: Order; error?: string };
+  }) => Promise<{ ok: boolean; order?: Order; error?: string }>;
   confirmStoreCollectionWithCode: (orderId: string, code: string) => { ok: boolean; error?: string };
   advanceOrderFulfilmentStage: (orderId: string, simulateStage2Failure?: boolean) => void;
   submitOrderFeedback: (feedback: Omit<CustomerFeedback, 'id' | 'customerId' | 'createdAt'>) => { ok: boolean; error?: string };
@@ -141,7 +141,7 @@ interface MarketplaceContextValue extends MarketplaceState {
     warrantyInfo?: string;
     variations: { label: string; size?: string; colour?: string; model?: string; priceDelta: number; stock: number }[];
     saveAsDraft?: boolean;
-  }) => { ok: boolean; product?: Product; error?: string };
+  }) => Promise<{ ok: boolean; product?: Product; error?: string }>;
   updateSellerProductStock: (productId: string, stock: number) => void;
   toggleSellerProductPause: (productId: string) => void;
   resubmitSellerProduct: (productId: string) => void;
@@ -178,6 +178,37 @@ const defaultState = (): MarketplaceState => ({
   commissionConfigPercent: DEFAULT_MARKETPLACE_COMMISSION_PERCENT,
 });
 
+const mapApiUser = (user: ApiUser): { customerUser: CustomerUser | null; sellerUser: SellerUser | null } => {
+  if (user.role === 'customer') return {
+    customerUser: { id:user.id,fullName:user.name,email:user.email,phone:user.phone ?? '',emailVerified:user.email_verified,
+      loyaltyPoints:user.loyalty_points ?? 0,savedAddresses:[],recentlyViewedIds:[],wishlistIds:[] },
+    sellerUser: null,
+  };
+  const seller=user.seller;
+  return { customerUser:null, sellerUser:{
+    id:user.id,fullName:user.name,businessName:seller?.business_name ?? user.name,sellerType:seller?.seller_type ?? 'individual',
+    email:user.email,phone:user.phone ?? '',emailVerified:user.email_verified,verificationStatus:seller?.verification_status ?? 'pending_verification',
+    countySlug:'',town:seller?.town ?? '',businessDescription:'',kraOrIdRef:'',payoutMethod:'mpesa_till',payoutAccountLabel:'',
+    commissionRatePercent:DEFAULT_MARKETPLACE_COMMISSION_PERCENT,joinedAt:new Date().toISOString().slice(0,10),
+  }};
+};
+const mapApiOrder = (order: ApiOrder, customer?: CustomerUser | null): Order => ({
+  id:order.id,orderNumber:order.order_number,customerId:order.customer_id,customerName:customer?.fullName ?? '',
+  customerPhone:customer?.phone ?? '',customerEmail:customer?.email ?? '',fulfilmentMethod:order.fulfilment_method,
+  deliveryAddress:order.fulfilment_method==='delivery'?{countySlug:'',town:order.delivery_town ?? '',street:order.delivery_street ?? ''}:undefined,
+  collectionPoint:order.collection_hub_name,collectionCode:order.collection_code ?? undefined,collectionConfirmed:order.collection_confirmed,
+  deliveryConfirmed:order.delivery_confirmed,paymentMethod:order.payment_method,
+  paymentStatus:order.payment_status==='paid'?'paid_sandbox':order.payment_status,paymentReference:order.payment_reference ?? 'Awaiting payment confirmation',
+  subtotal:order.subtotal,productDiscounts:0,couponDiscount:order.coupon_discount,deliveryFee:order.delivery_fee,taxAmount:0,totalAmount:order.total_amount,
+  status:order.status,statusHistory:(order.status_history ?? []).map((event)=>({status:event.status,label:event.label,timestamp:event.timestamp,note:event.note ?? ''})),
+  sellerItems:(order.items ?? []).map((item)=>({id:item.id,orderId:order.id,orderNumber:order.order_number,sellerId:'',
+    productId:item.product_id,productName:item.product_name,productImage:item.product_image ?? IMG_HERO,quantity:item.quantity,
+    unitPrice:item.unit_price,lineTotal:item.line_total,commissionRatePercent:DEFAULT_MARKETPLACE_COMMISSION_PERCENT,
+    commissionAmount:0,netSellerProceeds:item.line_total,preparationDeadline:'',fulfilmentInstructions:'',
+    collectionStatus:'pending_prep',stageTwoStatus:item.stage_two_status,earningsStatus:'pending'})),
+  feedbackSubmitted:order.feedback_submitted,createdAt:order.created_at?.slice(0,10) ?? '',
+});
+
 const MarketplaceContext = createContext<MarketplaceContextValue | null>(null);
 
 export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -185,7 +216,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return { ...defaultState(), ...JSON.parse(saved) };
+        return { ...defaultState(), ...JSON.parse(saved), customerUser: null, sellerUser: null };
       }
     } catch {
       // ignore storage errors
@@ -200,7 +231,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, customerUser: null, sellerUser: null }));
     } catch {
       // ignore quota errors
     }
@@ -208,6 +239,20 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   useEffect(() => {
     let cancelled = false;
+
+    getStorefrontSession().then(({authenticated,user}) => {
+      if(cancelled)return;
+      if(!authenticated || !user){setState((previous)=>({...previous,customerUser:null,sellerUser:null}));return;}
+      const mapped=mapApiUser(user);
+      setState((previous)=>({...previous,customerUser:mapped.customerUser,sellerUser:mapped.sellerUser,
+        sellers:mapped.sellerUser?[mapped.sellerUser,...previous.sellers.filter((s)=>s.id!==mapped.sellerUser!.id)]:previous.sellers}));
+      if(mapped.customerUser) Promise.all([fetchApiCart(),fetchApiOrders()]).then(([cart,orders])=>{
+        if(cancelled)return;
+        setState((previous)=>({...previous,
+          cart:cart.items.map((i)=>({id:i.id,productId:i.productId,variationId:i.variationId ?? undefined,quantity:i.quantity})),
+          orders:orders.data.map((o)=>mapApiOrder(o,mapped.customerUser))}));
+      }).catch(()=>undefined);
+    }).catch(()=>{if(!cancelled)setState((previous)=>({...previous,customerUser:null,sellerUser:null}));});
 
     fetchPublicCatalog()
       .then((products) => {
@@ -272,127 +317,66 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     );
   }, [state.products, state.sellers, catalogSource]);
 
-  const loginCustomer = (emailOrPhone: string, password: string) => {
-    if (!emailOrPhone.trim() || password.length < 4) {
-      return { ok: false, error: 'Please enter your email/phone and password (minimum 4 characters).' };
-    }
-    // Note: Customer login NEVER grants seller portal access
-    const user: CustomerUser =
-      emailOrPhone.toLowerCase().includes('customer@buyhive.co.ke') || emailOrPhone.includes('718552104')
-        ? INITIAL_CUSTOMER
-        : {
-            ...INITIAL_CUSTOMER,
-            id: `cust-${Date.now().toString().slice(-4)}`,
-            fullName: emailOrPhone.split('@')[0].replace(/[._]/g, ' '),
-            email: emailOrPhone.includes('@') ? emailOrPhone : 'shopper@buyhive.co.ke',
-            phone: emailOrPhone.includes('@') ? '+254 710 000 123' : emailOrPhone,
-          };
-    setState((prev) => ({ ...prev, customerUser: prev.customerUser ?? user }));
-    notify(`Welcome back to BuyHive, ${user.fullName}.`, 'success');
-    return { ok: true };
+  const loginCustomer: MarketplaceContextValue['loginCustomer'] = async (emailOrPhone,password) => {
+    try {
+      const {user}=await loginStorefront({email_or_phone:emailOrPhone,password,role:'customer'});
+      const mapped=mapApiUser(user);
+      if(!mapped.customerUser)return {ok:false,error:'This account is not registered as a customer.'};
+      const [cart,orders]=await Promise.all([fetchApiCart(),fetchApiOrders()]);
+      setState((previous)=>({...previous,customerUser:mapped.customerUser,sellerUser:null,
+        cart:cart.items.map((i)=>({id:i.id,productId:i.productId,variationId:i.variationId ?? undefined,quantity:i.quantity})),
+        orders:orders.data.map((o)=>mapApiOrder(o,mapped.customerUser))}));
+      notify(`Welcome back to BuyHive, ${mapped.customerUser.fullName}.`,'success');
+      return {ok:true};
+    } catch(error){return {ok:false,error:error instanceof Error?error.message:'Unable to sign in.'};}
   };
-
-  const registerCustomer = (data: { fullName: string; email: string; phone: string; password: string }) => {
-    if (!data.fullName.trim() || !data.email.includes('@') || !data.phone.trim() || data.password.length < 8) {
-      return { ok: false, error: 'Please provide valid details and a password of at least 8 characters.' };
-    }
-    const newCustomer: CustomerUser = {
-      id: `cust-${Date.now().toString().slice(-5)}`,
-      fullName: data.fullName.trim(),
-      email: data.email.trim().toLowerCase(),
-      phone: data.phone.trim(),
-      emailVerified: true,
-      loyaltyPoints: 150,
-      savedAddresses: [],
-      recentlyViewedIds: [],
-      wishlistIds: [],
-    };
-    setState((prev) => ({
-      ...prev,
-      customerUser: newCustomer,
-      rewardTransactions: [
-        { id: `rw-${Date.now()}`, description: 'Welcome Loyalty Bonus', points: 150, date: new Date().toISOString().slice(0, 10) },
-        ...prev.rewardTransactions,
-      ],
-    }));
-    notify('Account created and email verified. Welcome coupon HIVEWELCOME10 unlocked!', 'success');
-    return { ok: true };
+  const registerCustomer: MarketplaceContextValue['registerCustomer'] = async (data) => {
+    try {
+      const {user}=await registerStorefront({name:data.fullName,email:data.email,phone:data.phone,password:data.password,password_confirmation:data.password,role:'customer'});
+      const mapped=mapApiUser(user);
+      if(!mapped.customerUser)return {ok:false,error:'Customer registration failed.'};
+      setState((previous)=>({...previous,customerUser:mapped.customerUser,sellerUser:null,cart:[]}));
+      notify('Your BuyHive customer account has been created.','success');
+      return {ok:true};
+    } catch(error){return {ok:false,error:error instanceof Error?error.message:'Registration failed.'};}
   };
 
   const logoutCustomer = () => {
-    setState((prev) => ({ ...prev, customerUser: null }));
+    void logoutStorefront().catch(()=>undefined);
+    setState((prev) => ({ ...prev, customerUser: null, cart: [] }));
     notify('You have signed out of your BuyHive customer session.', 'info');
     navigate('/');
   };
 
-  const loginSeller = (email: string, password: string) => {
-    if (!email.trim() || password.length < 4) {
-      return { ok: false, error: 'Enter your registered seller email and password.' };
-    }
-    const existing = state.sellers.find((s) => s.email.toLowerCase() === email.trim().toLowerCase());
-    const seller = existing ?? state.sellers[0];
-    setState((prev) => ({ ...prev, sellerUser: seller }));
-    notify(`Signed in to Seller Portal (${seller.businessName}).`, 'success');
-    return { ok: true };
+  const loginSeller: MarketplaceContextValue['loginSeller'] = async (email,password) => {
+    try {
+      const {user}=await loginStorefront({email_or_phone:email,password,role:'seller'});
+      const mapped=mapApiUser(user);
+      if(!mapped.sellerUser)return {ok:false,error:'This account is not registered as a seller.'};
+      setState((previous)=>({...previous,sellerUser:mapped.sellerUser,customerUser:null,
+        sellers:[mapped.sellerUser!,...previous.sellers.filter((s)=>s.id!==mapped.sellerUser!.id)]}));
+      notify(`Signed in to Seller Portal (${mapped.sellerUser.businessName}).`,'success');
+      return {ok:true};
+    } catch(error){return {ok:false,error:error instanceof Error?error.message:'Seller login failed.'};}
   };
-
-  const registerSeller = (data: {
-    fullName: string;
-    businessName: string;
-    sellerType: SellerType;
-    email: string;
-    phone: string;
-    countySlug: string;
-    town: string;
-    businessDescription: string;
-    kraOrIdRef: string;
-    payoutMethod: 'mpesa_till' | 'mpesa_phone' | 'bank_transfer';
-    payoutAccountLabel: string;
-    password: string;
-  }) => {
-    if (!data.fullName.trim() || !data.email.includes('@') || data.password.length < 8) {
-      return { ok: false, error: 'Complete all required business/verification fields (min 8-char password).' };
-    }
-    const newSeller: SellerUser = {
-      id: `seller-${Date.now().toString().slice(-4)}`,
-      fullName: data.fullName.trim(),
-      businessName: data.sellerType === 'registered_business' ? data.businessName.trim() : data.fullName.trim(),
-      sellerType: data.sellerType,
-      email: data.email.trim().toLowerCase(),
-      phone: data.phone.trim(),
-      emailVerified: true,
-      verificationStatus: 'pending_verification',
-      countySlug: data.countySlug,
-      town: data.town.trim(),
-      businessDescription: data.businessDescription.trim(),
-      kraOrIdRef: data.kraOrIdRef.trim(),
-      payoutMethod: data.payoutMethod,
-      payoutAccountLabel: data.payoutAccountLabel.trim(),
-      commissionRatePercent: state.commissionConfigPercent,
-      joinedAt: new Date().toISOString().slice(0, 10),
-    };
-    setState((prev) => ({
-      ...prev,
-      sellers: [...prev.sellers, newSeller],
-      sellerUser: newSeller,
-      sellerMessages: [
-        {
-          id: `smsg-${Date.now()}`,
-          sellerId: newSeller.id,
-          type: 'verification',
-          title: 'Seller Application Received — Pending Verification',
-          body: 'You may draft and prepare product listings now. Products cannot be published publicly until seller verification and Stage-1 physical inspection are approved.',
-          isRead: false,
-          createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
-        },
-        ...prev.sellerMessages,
-      ],
-    }));
-    notify('Seller account created! Status: Pending Verification.', 'success');
-    return { ok: true };
+  const registerSeller: MarketplaceContextValue['registerSeller'] = async (data) => {
+    try {
+      const meta=await fetchStorefrontMeta();
+      const location=meta.locations.find((item)=>item.slug===data.countySlug);
+      if(!location)return {ok:false,error:'Please select a valid Kenyan county.'};
+      const {user}=await registerStorefront({name:data.fullName,email:data.email,phone:data.phone,password:data.password,
+        password_confirmation:data.password,role:'seller',seller_type:data.sellerType,business_name:data.businessName || data.fullName,
+        location_id:location.id,town:data.town,business_description:data.businessDescription});
+      const mapped=mapApiUser(user);
+      if(!mapped.sellerUser)return {ok:false,error:'Seller registration failed.'};
+      setState((previous)=>({...previous,sellerUser:mapped.sellerUser,customerUser:null,sellers:[mapped.sellerUser!,...previous.sellers]}));
+      notify('Seller application received. Your account is pending BuyHive verification.','success');
+      return {ok:true};
+    } catch(error){return {ok:false,error:error instanceof Error?error.message:'Seller registration failed.'};}
   };
 
   const logoutSeller = () => {
+    void logoutStorefront().catch(()=>undefined);
     setState((prev) => ({ ...prev, sellerUser: null }));
     notify('Signed out of Seller Portal.', 'info');
     navigate('/seller');
@@ -449,6 +433,12 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
+    if(state.customerUser && catalogSource==='api'){
+      void addApiCartItem({product_id:Number(productId),variation_id:chosenVar?.id?Number(chosenVar.id):undefined,quantity})
+        .then((response)=>setState((previous)=>({...previous,cart:response.items.map((i)=>({id:i.id,productId:i.productId,variationId:i.variationId ?? undefined,quantity:i.quantity}))})))
+        .catch((error)=>notify(error instanceof Error?error.message:'Unable to update your cart.','error'));
+      return;
+    }
     setState((prev) => {
       const existing = prev.cart.find(
         (c) => c.productId === productId && c.variationId === chosenVar?.id
@@ -481,6 +471,11 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       removeFromCart(cartItemId);
       return;
     }
+    if(state.customerUser && catalogSource==='api' && /^\\d+$/.test(cartItemId)){
+      void updateApiCartItem(cartItemId,quantity).then((response)=>setState((previous)=>({...previous,cart:response.items.map((i)=>({id:i.id,productId:i.productId,variationId:i.variationId ?? undefined,quantity:i.quantity}))})))
+        .catch((error)=>notify(error instanceof Error?error.message:'Unable to update your cart.','error'));
+      return;
+    }
     setState((prev) => ({
       ...prev,
       cart: prev.cart.map((c) => {
@@ -494,6 +489,10 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const removeFromCart = (cartItemId: string) => {
+    if(state.customerUser && catalogSource==='api' && /^\\d+$/.test(cartItemId)){
+      void deleteApiCartItem(cartItemId).then((response)=>setState((previous)=>({...previous,cart:response.items.map((i)=>({id:i.id,productId:i.productId,variationId:i.variationId ?? undefined,quantity:i.quantity}))}))).catch((error)=>notify(error instanceof Error?error.message:'Unable to remove this item.','error'));
+      return;
+    }
     setState((prev) => ({
       ...prev,
       cart: prev.cart.filter((c) => c.id !== cartItemId),
@@ -538,12 +537,27 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return { valid: true, discount, coupon };
   };
 
-  const placeCheckoutOrder: MarketplaceContextValue['placeCheckoutOrder'] = (payload) => {
+  const placeCheckoutOrder: MarketplaceContextValue['placeCheckoutOrder'] = async (payload) => {
     if (!state.customerUser) {
       return { ok: false, error: 'Customer authentication required.' };
     }
-    if (state.cart.length === 0) {
-      return { ok: false, error: 'Your cart is empty.' };
+    if (state.cart.length === 0) return {ok:false,error:'Your cart is empty.'};
+    if(catalogSource==='api'){
+      try{
+        const meta=await fetchStorefrontMeta();
+        const location=payload.fulfilmentMethod==='delivery'?meta.locations.find((item)=>item.slug===payload.deliveryAddress?.countySlug):undefined;
+        if(payload.fulfilmentMethod==='delivery'&&!location)return {ok:false,error:'Please choose a valid delivery county.'};
+        const response=await checkoutApiOrder({
+          customer_name:payload.customerName,customer_phone:payload.customerPhone,customer_email:payload.customerEmail,
+          fulfilment_method:payload.fulfilmentMethod,delivery_location_id:location?.id,delivery_town:payload.deliveryAddress?.town,
+          delivery_street:payload.deliveryAddress?.street,collection_hub_name:payload.collectionPoint,order_notes:payload.orderNotes,
+          coupon_code:payload.couponCode,payment_method:payload.paymentMethod,
+        });
+        const order=mapApiOrder(response.order,state.customerUser);
+        setState((previous)=>({...previous,orders:[order,...previous.orders],cart:[]}));
+        notify(response.payment.message,'info');
+        return {ok:true,order};
+      }catch(error){return {ok:false,error:error instanceof Error?error.message:'Checkout could not be completed.'};}
     }
 
     // Backend-authoritative calculation (never trust frontend amounts)
@@ -962,10 +976,40 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Seller Actions
-  const createSellerProduct: MarketplaceContextValue['createSellerProduct'] = (payload) => {
+  const createSellerProduct: MarketplaceContextValue['createSellerProduct'] = async (payload) => {
     if (!state.sellerUser) return { ok: false, error: 'Seller authentication required.' };
     if (!payload.name.trim() || payload.price <= 0) {
       return { ok: false, error: 'Product name and valid selling price are required.' };
+    }
+    if(catalogSource==='api'){
+      try{
+        const meta=await fetchStorefrontMeta();
+        const category=CATEGORIES.find((item)=>item.id===payload.categoryId);
+        const subcategory=category?.subcategories.find((item)=>item.id===payload.subcategoryId);
+        const categoryRecord=meta.categories.find((item)=>item.slug===category?.slug);
+        const subcategoryRecord=categoryRecord?.subcategories?.find((item:any)=>item.slug===subcategory?.slug);
+        const location=meta.locations.find((item)=>item.slug===payload.countySlug);
+        if(!categoryRecord||!subcategoryRecord||!location)return {ok:false,error:'Choose a valid category, subcategory and county.'};
+        const response=await createApiSellerProduct({
+          name:payload.name,category_id:categoryRecord.id,subcategory_id:subcategoryRecord.id,location_id:location.id,
+          brand:payload.brand,description:payload.description,specifications:payload.specifications,condition:payload.condition,
+          price:payload.price,stock:payload.stock,town:payload.town,delivery_available:payload.deliveryAvailable,
+          collection_available:payload.collectionAvailable,warranty_info:payload.warrantyInfo,images:payload.images,
+          variations:payload.variations.map((v)=>({label:v.label,size:v.size,colour:v.colour,model:v.model,price_delta:v.priceDelta,stock:v.stock})),
+          save_as_draft:payload.saveAsDraft??false,
+        });
+        const record=response.data;
+        const product:Product={id:record.id,sku:record.sku,sellerId:state.sellerUser.id,name:payload.name,slug:payload.name.toLowerCase().replace(/[^a-z0-9]+/g,'-'),
+          categoryId:payload.categoryId,subcategoryId:payload.subcategoryId,brand:payload.brand,description:payload.description,specifications:payload.specifications,
+          condition:payload.condition,images:record.images?.map((path:string)=>path.startsWith('http')?path:`/storage/${path}`)??[],price:payload.price,stock:record.stock,
+          countySlug:payload.countySlug,town:payload.town,deliveryAvailable:payload.deliveryAvailable,collectionAvailable:payload.collectionAvailable,
+          warrantyInfo:payload.warrantyInfo,variations:payload.variations.map((v,index)=>({id:`local-${index}`,...v})),occasionSlugs:[],
+          stageOneStatus:record.stage_one_status,isPublished:record.is_published,isPaused:record.is_paused,viewsCount:0,salesCount:0,
+          ratingAverage:0,ratingCount:0,createdAt:new Date().toISOString().slice(0,10),inspectionHistory:[]};
+        setState((previous)=>({...previous,products:[product,...previous.products]}));
+        notify(payload.saveAsDraft?'Product saved as draft.':'Product submitted for Stage-1 inspection.','success');
+        return {ok:true,product};
+      }catch(error){return {ok:false,error:error instanceof Error?error.message:'Unable to create product.'};}
     }
     const status: StageOneInspectionStatus = payload.saveAsDraft ? 'draft' : 'pending_inspection';
     const newProd: Product = {

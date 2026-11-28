@@ -117,18 +117,18 @@ export const SellerLandingAndAuthPage: React.FC<{ mode: 'welcome' | 'login' | 'r
     );
   }
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (mode === 'login') {
-      const res = loginSeller(email, password);
+      const res = await loginSeller(email, password);
       if (!res.ok) {
         setError(res.error || 'Seller login failed.');
         return;
       }
       navigate('/seller/dashboard');
     } else {
-      const res = registerSeller({
+      const res = await registerSeller({
         fullName,
         businessName,
         sellerType,
@@ -448,8 +448,8 @@ export const SellerDashboardPage: React.FC<{ activeTab: SellerTab }> = ({ active
     });
   };
 
-  const handleCreateProduct = (saveAsDraft: boolean) => {
-    const res = createSellerProduct({
+  const handleCreateProduct = async (saveAsDraft: boolean) => {
+    const res = await createSellerProduct({
       name: prodName,
       categoryId: catId,
       subcategoryId: subId,

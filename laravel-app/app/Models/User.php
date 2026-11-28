@@ -25,4 +25,5 @@ class User extends Authenticatable implements MustVerifyEmail
     public function wishlist(): HasOne { return $this->hasOne(Wishlist::class); }
     public function rewardTransactions(): HasMany { return $this->hasMany(RewardTransaction::class); }
     public function supportTickets(): HasMany { return $this->hasMany(SupportTicket::class); }
+    public function supportTickets(): HasMany { return $this->hasMany(SupportTicket::class); }
 }

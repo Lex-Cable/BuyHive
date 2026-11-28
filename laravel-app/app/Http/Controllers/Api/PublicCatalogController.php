@@ -47,7 +47,7 @@ class PublicCatalogController extends Controller
             0,
             (int) $product->inventories
                 ->where('product_variation_id', $variationId)
-                ->sum(fn ($inventory) => $inventory->available_quantity - $inventory->reserved_quantity)
+                ->sum('available_quantity')
         );
 
         return [
