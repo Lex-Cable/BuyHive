@@ -222,15 +222,7 @@ export const CustomerAuthPage: React.FC<{ mode: 'login' | 'register' | 'forgot' 
                 {mode === 'login' ? 'Sign In to Dashboard' : mode === 'register' ? 'Create Customer Account' : 'Send Reset Link'}
               </button>
 
-              {mode === 'login' && (
-                <button
-                  type="button"
-                  onClick={fillDemoCustomer}
-                  className="w-full py-2 px-3 rounded-lg border border-stone-200 text-xs font-medium text-stone-600 hover:bg-stone-50 cursor-pointer"
-                >
-                  Use Sample Customer Credentials (customer@buyhive.co.ke)
-                </button>
-              )}
+}
             </form>
           )}
 

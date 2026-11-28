@@ -33,7 +33,7 @@ import {
   INITIAL_TICKETS,
 } from '../data/seedCatalog';
 import { CATEGORIES, IMG_HERO } from '../data/categories';
-import { fetchPublicCatalog, getStorefrontSession, loginStorefront, logoutStorefront, registerStorefront, fetchStorefrontMeta, fetchApiCart, addApiCartItem, updateApiCartItem, deleteApiCartItem, fetchApiOrders, checkoutApiOrder, createApiSellerProduct, confirmApiCollection, type ApiUser, type ApiOrder } from '../lib/buyhiveApi';
+import { fetchPublicCatalog, getStorefrontSession, loginStorefront, logoutStorefront, registerStorefront, fetchStorefrontMeta, fetchApiCart, addApiCartItem, updateApiCartItem, deleteApiCartItem, fetchApiOrders, checkoutApiOrder, createApiSellerProduct, confirmApiCollection, fetchApiSellerProducts, type ApiUser, type ApiOrder } from '../lib/buyhiveApi';
 
 export function formatKSh(amount: number): string {
   return `KSh ${Math.round(amount).toLocaleString('en-KE')}`;
@@ -222,7 +222,7 @@ const mapApiOrder = (order: ApiOrder, customer?: CustomerUser | null): Order => 
     productId:item.product_id,productName:item.product_name,productImage:item.product_image ?? IMG_HERO,quantity:item.quantity,
     unitPrice:item.unit_price,lineTotal:item.line_total,commissionRatePercent:DEFAULT_MARKETPLACE_COMMISSION_PERCENT,
     commissionAmount:0,netSellerProceeds:item.line_total,preparationDeadline:'',fulfilmentInstructions:'',
-    collectionStatus:'pending_prep',stageTwoStatus:item.stage_two_status,earningsStatus:'pending'})),
+    collectionStatus:'pending_prep',stageTwoStatus:item.stage_two_status as SellerOrderItem['stageTwoStatus'],earningsStatus:'pending'})),
   feedbackSubmitted:order.feedback_submitted,createdAt:order.created_at?.slice(0,10) ?? '',
 });
 
@@ -265,8 +265,8 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         sellers:mapped.sellerUser?[mapped.sellerUser,...previous.sellers.filter((s)=>s.id!==mapped.sellerUser!.id)]:previous.sellers}));
       if(mapped.sellerUser) Promise.all([fetchApiSellerProducts(),fetchStorefrontMeta()]).then(([products,meta])=>{
         if(cancelled)return;
-        const mappedProducts=products.data.map((record)=>mapApiSellerProduct(record,mapped.sellerUser!.id,meta));
-        setState((previous)=>({...previous,products:[...mappedProducts,...previous.products.filter((p)=>!mappedProducts.some((m)=>m.id===p.id))]}));
+        const mappedProducts:Product[]=products.data.map((record:any)=>mapApiSellerProduct(record,mapped.sellerUser!.id,meta));
+        setState((previous)=>({...previous,products:[...mappedProducts,...previous.products.filter((p)=>!mappedProducts.some((m:Product)=>m.id===p.id))]}));
       }).catch(()=>undefined);
       if(mapped.customerUser) Promise.all([fetchApiCart(),fetchApiOrders()]).then(([cart,orders])=>{
         if(cancelled)return;
