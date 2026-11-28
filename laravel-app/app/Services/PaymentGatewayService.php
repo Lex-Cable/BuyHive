@@ -70,7 +70,35 @@ class PaymentGatewayService
                     'note' => "Verified via {$tx->provider} webhook ({$tx->transaction_reference}).",
                 ]);
             } else {
-                $order->update(['payment_status' => 'failed']);
+                $order->update(['payment_status' => 'failed', 'status' => 'cancelled']);
+
+                // A failed payment releases stock reservations atomically.
+                foreach ($order->sellerItems as $item) {
+                    $inventory = ProductInventory::query()
+                        ->where('product_id', $item->product_id)
+                        ->when(
+                            $item->product_variation_id,
+                            fn ($query) => $query->where('product_variation_id', $item->product_variation_id),
+                            fn ($query) => $query->whereNull('product_variation_id')
+                        )
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($inventory) {
+                        $releaseQuantity = min($inventory->reserved_quantity, $item->quantity);
+                        if ($releaseQuantity > 0) {
+                            $inventory->decrement('reserved_quantity', $releaseQuantity);
+                            $inventory->increment('available_quantity', $releaseQuantity);
+                        }
+                    }
+                }
+
+                OrderStatusHistory::create([
+                    'order_id' => $order->id,
+                    'status' => 'payment_failed',
+                    'label' => 'Payment Failed · Stock Released',
+                    'note' => 'Payment was not verified. Reserved stock has been returned to available inventory.',
+                ]);
             }
 
             return $tx;
