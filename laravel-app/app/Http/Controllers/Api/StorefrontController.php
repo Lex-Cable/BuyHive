@@ -622,6 +622,9 @@ class StorefrontController extends Controller
     {
         $seller = $request->user()->sellerProfile;
         abort_unless($seller, 403);
+        if ($seller->verification_status !== 'approved') {
+            throw ValidationException::withMessages(['payout' => 'Seller verification must be approved before requesting a payout.']);
+        }
 
         $payout = DB::transaction(function () use ($seller) {
             $account = SellerPayoutAccount::query()

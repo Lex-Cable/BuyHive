@@ -440,7 +440,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       navigate('/login');
       return;
     }
-    if (backendSession) {
+    if (backendSession && /^\\d+$/.test(productId)) {
       void toggleApiWishlist(productId).then(async (result) => {
         const wishlist = await fetchApiWishlist();
         setState((previous)=>({...previous,customerUser:previous.customerUser?{...previous.customerUser,wishlistIds:wishlist.product_ids}:null}));
@@ -533,6 +533,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const validateCouponServerSide = (code: string, subtotal: number) => {
+    if (backendSession) return {valid:true,discount:0,reason:'The server validates coupon eligibility and calculates the final discount during checkout.'};
     const clean = code.trim().toUpperCase();
     if (!clean) return { valid: false, discount: 0, reason: 'Enter a coupon code.' };
     const coupon = state.coupons.find((c) => c.code.toUpperCase() === clean);
@@ -575,7 +576,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return { ok: false, error: 'Customer authentication required.' };
     }
     if (state.cart.length === 0) return {ok:false,error:'Your cart is empty.'};
-    if(catalogSource==='api'){
+    if(backendSession){
       try{
         const meta=await fetchStorefrontMeta();
         const location=payload.fulfilmentMethod==='delivery'?meta.locations.find((item)=>item.slug===payload.deliveryAddress?.countySlug):undefined;
