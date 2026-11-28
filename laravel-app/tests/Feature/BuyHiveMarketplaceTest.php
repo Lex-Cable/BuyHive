@@ -151,6 +151,62 @@ class BuyHiveMarketplaceTest extends TestCase
         $this->assertEquals(9000.00, $calc['net_seller_proceeds']);
     }
 
+    public function test_react_storefront_catalog_api_returns_only_approved_products_without_seller_identity(): void
+    {
+        $sellerUser = User::factory()->seller()->create();
+        $seller = SellerProfile::create([
+            'user_id' => $sellerUser->id,
+            'seller_type' => 'registered_business',
+            'business_name' => 'Private Seller Company',
+            'town' => 'Westlands',
+            'verification_status' => 'approved',
+        ]);
+        [$category, $subcategory, $location] = $this->catalogFixtures();
+
+        Product::create([
+            'seller_profile_id' => $seller->id,
+            'category_id' => $category->id,
+            'subcategory_id' => $subcategory->id,
+            'location_id' => $location->id,
+            'sku' => 'BH-API-APPROVED',
+            'name' => 'Approved Public Product',
+            'slug' => 'approved-public-product',
+            'description' => 'Visible in the React storefront.',
+            'price' => 2500,
+            'town' => 'Westlands',
+            'stage_one_status' => 'approved',
+            'is_published' => true,
+        ]);
+
+        Product::create([
+            'seller_profile_id' => $seller->id,
+            'category_id' => $category->id,
+            'subcategory_id' => $subcategory->id,
+            'location_id' => $location->id,
+            'sku' => 'BH-API-PENDING',
+            'name' => 'Pending Product Must Stay Hidden',
+            'slug' => 'pending-product-must-stay-hidden',
+            'description' => 'Not approved for listing.',
+            'price' => 1200,
+            'town' => 'Westlands',
+            'stage_one_status' => 'pending_inspection',
+            'is_published' => false,
+        ]);
+
+        $response = $this->getJson('/api/catalog');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Approved Public Product')
+            ->assertJsonPath('data.0.sellerId', '__server-approved__')
+            ->assertJsonMissingPath('data.0.seller_name')
+            ->assertJsonMissingPath('data.0.seller_email')
+            ->assertJsonMissingPath('data.0.seller_phone')
+            ->assertJsonMissing(['name' => 'Pending Product Must Stay Hidden']);
+
+        $this->assertStringNotContainsString('Private Seller Company', $response->getContent());
+    }
+
     private function catalogFixtures(): array
     {
         $category = Category::create(['name' => 'Electronics', 'slug' => 'electronics']);
