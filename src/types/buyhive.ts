@@ -258,6 +258,7 @@ export interface Order {
   paymentMethod: PaymentMethodId;
   paymentStatus: 'pending' | 'paid_sandbox' | 'failed' | 'refunded';
   paymentReference: string;
+  paymentTransactionId?: string;
   subtotal: number;
   productDiscounts: number;
   couponCode?: string;

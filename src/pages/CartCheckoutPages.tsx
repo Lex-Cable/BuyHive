@@ -502,8 +502,17 @@ export const CheckoutPage: React.FC = () => {
 };
 
 export const OrderConfirmationPage: React.FC<{ orderId: string }> = ({ orderId }) => {
-  const { orders, navigate } = useMarketplace();
+  const { orders, navigate, confirmSandboxPayment } = useMarketplace();
   const order = orders.find((o) => o.id === orderId);
+  const [paymentActionError, setPaymentActionError] = useState('');
+  const [paymentActionBusy, setPaymentActionBusy] = useState(false);
+  const handleSandboxPayment = async (succeeded: boolean) => {
+    setPaymentActionBusy(true);
+    setPaymentActionError('');
+    const result = await confirmSandboxPayment(orderId,succeeded);
+    if (!result.ok) setPaymentActionError(result.error || 'Sandbox payment could not be updated.');
+    setPaymentActionBusy(false);
+  };
 
   if (!order) {
     return (
@@ -535,6 +544,18 @@ export const OrderConfirmationPage: React.FC<{ orderId: string }> = ({ orderId }
               </p>
             </div>
           </div>
+
+          {import.meta.env.DEV && order.paymentStatus === 'pending' && order.paymentTransactionId && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
+              <div className="text-xs font-semibold text-amber-900">Local sandbox payment controls</div>
+              <p className="text-xs text-amber-800">These controls only test the local payment lifecycle. They do not contact M-Pesa, charge a card or transfer money.</p>
+              {paymentActionError && <p className="text-xs text-red-700">{paymentActionError}</p>}
+              <div className="flex flex-wrap gap-2">
+                <button type="button" disabled={paymentActionBusy} onClick={() => void handleSandboxPayment(true)} className="px-4 py-2 rounded-lg bg-[#141619] text-white text-xs font-semibold disabled:opacity-50">Mark sandbox payment successful</button>
+                <button type="button" disabled={paymentActionBusy} onClick={() => void handleSandboxPayment(false)} className="px-4 py-2 rounded-lg border border-red-300 text-red-700 text-xs font-semibold disabled:opacity-50">Simulate payment failure</button>
+              </div>
+            </div>
+          )}
 
           {order.fulfilmentMethod === 'store_collection' && order.collectionCode && (
             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">

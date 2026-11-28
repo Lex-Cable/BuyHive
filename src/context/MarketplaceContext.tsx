@@ -33,7 +33,7 @@ import {
   INITIAL_TICKETS,
 } from '../data/seedCatalog';
 import { CATEGORIES, IMG_HERO } from '../data/categories';
-import { fetchPublicCatalog, getStorefrontSession, loginStorefront, logoutStorefront, registerStorefront, fetchStorefrontMeta, fetchApiCart, addApiCartItem, updateApiCartItem, deleteApiCartItem, fetchApiOrders, checkoutApiOrder, createApiSellerProduct, confirmApiCollection, fetchApiSellerProducts, submitApiOrderFeedback, type ApiUser, type ApiOrder } from '../lib/buyhiveApi';
+import { fetchPublicCatalog, getStorefrontSession, loginStorefront, logoutStorefront, registerStorefront, fetchStorefrontMeta, fetchApiCart, addApiCartItem, updateApiCartItem, deleteApiCartItem, fetchApiOrders, checkoutApiOrder, createApiSellerProduct, confirmApiCollection, fetchApiSellerProducts, submitApiOrderFeedback, confirmApiSandboxPayment, type ApiUser, type ApiOrder } from '../lib/buyhiveApi';
 
 export function formatKSh(amount: number): string {
   return `KSh ${Math.round(amount).toLocaleString('en-KE')}`;
@@ -110,6 +110,7 @@ interface MarketplaceContextValue extends MarketplaceState {
     mpesaPhone?: string;
   }) => Promise<{ ok: boolean; order?: Order; error?: string }>;
   confirmStoreCollectionWithCode: (orderId: string, code: string) => Promise<{ ok: boolean; error?: string }>;
+  confirmSandboxPayment: (orderId: string, succeeded?: boolean) => Promise<{ok:boolean;error?:string}>;
   advanceOrderFulfilmentStage: (orderId: string, simulateStage2Failure?: boolean) => void;
   submitOrderFeedback: (feedback: Omit<CustomerFeedback, 'id' | 'customerId' | 'createdAt'>) => Promise<{ ok: boolean; error?: string }>;
   redeemRewardPoints: (points: number) => { ok: boolean; couponCode?: string; error?: string };
@@ -579,7 +580,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
           delivery_street:payload.deliveryAddress?.street,collection_hub_name:payload.collectionPoint,order_notes:payload.orderNotes,
           coupon_code:payload.couponCode,payment_method:payload.paymentMethod,
         });
-        const order=mapApiOrder(response.order,state.customerUser);
+        const order={...mapApiOrder(response.order,state.customerUser),paymentTransactionId:String(response.payment.id)};
         setState((previous)=>({...previous,orders:[order,...previous.orders],cart:[]}));
         notify(response.payment.message,'info');
         return {ok:true,order};
@@ -798,6 +799,18 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }));
     notify('Collection confirmed! You are now eligible to submit order feedback.', 'success');
     return { ok: true };
+  };
+
+  const confirmSandboxPayment: MarketplaceContextValue['confirmSandboxPayment'] = async (orderId,succeeded=true) => {
+    const order=state.orders.find((item)=>item.id===orderId);
+    if(!order?.paymentTransactionId)return {ok:false,error:'No sandbox payment transaction is attached to this order.'};
+    try{
+      const response=await confirmApiSandboxPayment(order.paymentTransactionId,succeeded);
+      const updated=mapApiOrder(response.order,state.customerUser);
+      setState((previous)=>({...previous,orders:previous.orders.map((item)=>item.id===orderId?{...updated,paymentTransactionId:order.paymentTransactionId}:item)}));
+      notify(succeeded?'Sandbox payment confirmed. No real funds were transferred.':'Sandbox payment marked failed. Reserved stock has been released.','success');
+      return {ok:true};
+    }catch(error){return {ok:false,error:error instanceof Error?error.message:'Sandbox payment confirmation failed.'};}
   };
 
   const advanceOrderFulfilmentStage = (orderId: string, simulateStage2Failure = false) => {
@@ -1274,6 +1287,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         validateCouponServerSide,
         placeCheckoutOrder,
         confirmStoreCollectionWithCode,
+        confirmSandboxPayment,
         advanceOrderFulfilmentStage,
         submitOrderFeedback,
         redeemRewardPoints,

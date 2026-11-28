@@ -89,3 +89,6 @@ export const confirmApiCollection = (orderId:string,collectionCode:string) =>
 
 export const submitApiOrderFeedback = (orderId:string,data:Record<string,unknown>) =>
   storefrontRequest<{feedback_id:number;loyalty_points_awarded:number}>(`/api/storefront/orders/${orderId}/feedback`,{method:'POST',body:JSON.stringify(data)});
+
+export const confirmApiSandboxPayment = (transactionId:string,succeeded:boolean) =>
+  storefrontRequest<{order:ApiOrder;payment_status:string}>(`/api/storefront/payments/${transactionId}/sandbox-confirm`,{method:'POST',body:JSON.stringify({succeeded})});
