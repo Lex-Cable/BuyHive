@@ -18,7 +18,7 @@ class PublicCatalogController extends Controller
         $products = Product::query()
             ->publiclyListable()
             ->with([
-                'category',
+                'category.subcategories',
                 'subcategory',
                 'location',
                 'images',
@@ -37,6 +37,12 @@ class PublicCatalogController extends Controller
 
     private function toStorefrontProduct(Product $product): array
     {
+        $categoryPosition = (int) ($product->category?->sort_order ?? 0);
+        $subcategoryPosition = $product->category?->subcategories
+            ->sortBy('id')
+            ->values()
+            ->search(fn ($subcategory) => $subcategory->is($product->subcategory));
+
         $stockForVariation = fn (?int $variationId): int => max(
             0,
             (int) $product->inventories
@@ -51,8 +57,8 @@ class PublicCatalogController extends Controller
             'sellerId' => '__server-approved__',
             'name' => $product->name,
             'slug' => $product->slug,
-            'categoryId' => (string) $product->category_id,
-            'subcategoryId' => (string) $product->subcategory_id,
+            'categoryId' => 'cat-' . $categoryPosition,
+            'subcategoryId' => 'sub-' . $categoryPosition . '-' . ((int) $subcategoryPosition + 1),
             'brand' => $product->brand ?? '',
             'description' => $product->description,
             'specifications' => $product->specifications ?? [],

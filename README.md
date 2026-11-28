@@ -415,3 +415,41 @@ A license has not yet been specified. Until a license is added to this repositor
 ---
 
 **BuyHive — Discover products. Shop with confidence.**
+
+
+## React storefront and Laravel API integration
+
+The customer and seller experience remains the existing React + TypeScript application at the repository root. Laravel remains the system of record for authentication, marketplace rules, persistence, inspection, orders, payments and seller operations. The Laravel Vue/Inertia pages are not the customer storefront.
+
+### Local development
+
+Run MySQL from XAMPP, then start Laravel from a PowerShell terminal:
+
+```powershell
+cd C:\Users\elite\BuyHive\laravel-app
+php -S 127.0.0.1:8010 -t public public/index.php
+```
+
+In a second terminal, start the React application:
+
+```powershell
+cd C:\Users\elite\BuyHive
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. Vite proxies `/api/*` requests to the Laravel development server on `127.0.0.1:8010`. The PHP built-in server command above is a temporary workaround for the current Herd PHP 8.5 `artisan serve` cURL startup issue; it does not change the Laravel application.
+
+### Current integration scope
+
+- The React storefront requests `GET /api/catalog` from Laravel on startup.
+- Laravel applies the existing public-listing rule: the seller must be approved and the product must have passed Stage-1 inspection, be published and not paused.
+- The API response deliberately omits seller names, email addresses, phone numbers and private seller references.
+- If Laravel is unavailable, the React app keeps its local demo catalogue so the existing UI can still be reviewed.
+- Category identifiers are mapped to the React storefront's existing taxonomy IDs.
+
+### Not yet integrated
+
+Customer and seller login/registration, persistent carts, checkout/order creation, payments, order tracking, feedback, wishlist, support, and seller dashboard mutations still need dedicated session-authenticated API endpoints and frontend service wiring. Existing demo-mode behaviour must not be mistaken for live backend transactions. Payment provider credentials and live webhooks also remain separate configuration work.
+
+The Laravel Vue/Inertia placeholder pages remain in place for now; this change does not delete or replace them.
