@@ -212,6 +212,9 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     fetchPublicCatalog()
       .then((products) => {
         if (cancelled) return;
+        // Keep the populated preview catalogue visible in local development
+        // until the Laravel database has its first approved public listings.
+        if (products.length === 0 && import.meta.env.DEV) return;
         setState((previous) => ({ ...previous, products }));
         setCatalogSource('api');
       })
