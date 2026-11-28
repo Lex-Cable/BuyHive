@@ -3,8 +3,12 @@
 use App\Http\Controllers\Integration\ManagementSyncController;
 use App\Http\Middleware\VerifyManagementIntegrationSignature;
 use App\Services\PaymentGatewayService;
+use App\Http\Controllers\Api\PublicCatalogController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// Public React storefront catalogue. The controller applies the inspection and seller approval gate.
+Route::get('/catalog', [PublicCatalogController::class, 'index']);
 
 // Payment Provider Webhooks (M-Pesa Daraja, Stripe/Card, PayPal)
 Route::post('/webhooks/mpesa', function (Request $request, PaymentGatewayService $payments) {

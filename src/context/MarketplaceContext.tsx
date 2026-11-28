@@ -33,6 +33,7 @@ import {
   INITIAL_TICKETS,
 } from '../data/seedCatalog';
 import { CATEGORIES, IMG_HERO } from '../data/categories';
+import { fetchPublicCatalog } from '../lib/buyhiveApi';
 
 export function formatKSh(amount: number): string {
   return `KSh ${Math.round(amount).toLocaleString('en-KE')}`;
@@ -195,6 +196,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname || '/');
   const [currentSearch, setCurrentSearch] = useState<string>(() => window.location.search || '');
   const [toastMessage, setToastMessage] = useState<{ text: string; tone: 'success' | 'error' | 'info' } | null>(null);
+  const [catalogSource, setCatalogSource] = useState<'demo' | 'api'>('demo');
 
   useEffect(() => {
     try {
@@ -203,6 +205,26 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // ignore quota errors
     }
   }, [state]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchPublicCatalog()
+      .then((products) => {
+        if (cancelled) return;
+        setState((previous) => ({ ...previous, products }));
+        setCatalogSource('api');
+      })
+      .catch((error: unknown) => {
+        if (import.meta.env.DEV) {
+          console.info('BuyHive API is not available; keeping the local preview catalogue.', error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const onPopState = () => {
@@ -243,9 +265,9 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         p.stageOneStatus === 'approved' &&
         p.isPublished &&
         !p.isPaused &&
-        approvedSellerIds.has(p.sellerId)
+        (catalogSource === 'api' || approvedSellerIds.has(p.sellerId))
     );
-  }, [state.products, state.sellers]);
+  }, [state.products, state.sellers, catalogSource]);
 
   const loginCustomer = (emailOrPhone: string, password: string) => {
     if (!emailOrPhone.trim() || password.length < 4) {
