@@ -428,7 +428,7 @@ export const CheckoutPage: React.FC = () => {
                     className="w-full h-10 px-3 text-sm font-mono bg-white border border-emerald-300 rounded-lg"
                   />
                   <p className="text-[11px] text-emerald-800">
-                    Development Sandbox: Submitting simulates a verified webhook callback and records a sandbox transaction reference (`MPESA-SBX-*`).
+                    Development sandbox only: no STK push or real charge is made. A pending payment record is created and must be reconciled by a test callback.
                   </p>
                 </div>
               )}
@@ -486,7 +486,7 @@ export const CheckoutPage: React.FC = () => {
               disabled={items.length === 0}
               className="w-full py-3.5 rounded-lg bg-[#141619] hover:bg-stone-800 text-white text-sm font-semibold cursor-pointer"
             >
-              Confirm & Pay {formatKSh(totalPayable)} (Sandbox)
+              Create Order · {formatKSh(totalPayable)} (Sandbox)
             </button>
 
             <div className="flex items-center gap-2 text-xs text-stone-500">
@@ -528,10 +528,10 @@ export const OrderConfirmationPage: React.FC<{ orderId: string }> = ({ orderId }
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-7 h-7 text-emerald-700 shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-semibold text-emerald-700">Order Confirmed · Notification Sent</p>
+              <p className="text-xs font-semibold text-amber-700">{order.paymentStatus === 'pending' ? 'Order Created · Payment Pending' : 'Order Created · Sandbox Payment'}</p>
               <h1 className="font-display text-2xl sm:text-3xl font-bold mt-1">Thank you! Order {order.orderNumber}</h1>
               <p className="text-sm text-stone-600 mt-1">
-                Payment reference <span className="font-mono text-[#141619]">{order.paymentReference}</span> ({order.paymentMethod.toUpperCase()} Sandbox). Sellers have been notified with anonymized fulfilment references.
+                Payment reference <span className="font-mono text-[#141619]">{order.paymentReference}</span>. {order.paymentStatus === 'pending' ? 'No payment has been confirmed and no funds have been charged. Seller fulfilment remains on hold.' : 'This is a sandbox transaction only; no real funds were transferred.'}
               </p>
             </div>
           </div>
@@ -565,7 +565,7 @@ export const OrderConfirmationPage: React.FC<{ orderId: string }> = ({ orderId }
               <span>{order.fulfilmentMethod === 'delivery' ? `Delivery (${order.deliveryAddress?.town})` : order.collectionPoint}</span>
             </div>
             <div className="flex justify-between font-bold text-base pt-2">
-              <span>Total Paid</span>
+              <span>Order Total</span>
               <span className="font-mono tabular-nums">{formatKSh(order.totalAmount)}</span>
             </div>
           </div>

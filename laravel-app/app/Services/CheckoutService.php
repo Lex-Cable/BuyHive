@@ -187,6 +187,18 @@ class CheckoutService
             throw ValidationException::withMessages(['coupon_code' => 'You have already redeemed this coupon.']);
         }
 
+        if ($coupon->max_redemptions !== null && $coupon->redemptions()->count() >= $coupon->max_redemptions) {
+            throw ValidationException::withMessages(['coupon_code' => 'This coupon has reached its redemption limit.']);
+        }
+
+        $eligibleProducts = collect($lines)->pluck('product');
+        if ($coupon->category_id && !$eligibleProducts->contains(fn (Product $product) => (int) $product->category_id === (int) $coupon->category_id)) {
+            throw ValidationException::withMessages(['coupon_code' => 'This coupon is restricted to a different product category.']);
+        }
+        if ($coupon->product_id && !$eligibleProducts->contains(fn (Product $product) => (int) $product->id === (int) $coupon->product_id)) {
+            throw ValidationException::withMessages(['coupon_code' => 'This coupon is restricted to a different product.']);
+        }
+
         $discount = $coupon->discount_type === 'percentage'
             ? round(($subtotal * (float) $coupon->discount_value) / 100, 2)
             : min($subtotal, (float) $coupon->discount_value);

@@ -6,6 +6,8 @@ use App\Models\Category;
 use App\Models\CustomerProfile;
 use App\Models\Location;
 use App\Models\Order;
+use App\Models\PaymentTransaction;
+use App\Models\ProductInventory;
 use App\Models\Product;
 use App\Models\SellerOrderItem;
 use App\Models\SellerProfile;
@@ -14,6 +16,7 @@ use App\Models\User;
 use App\Services\CommissionService;
 use App\Services\FeedbackEligibilityService;
 use App\Services\InspectionWorkflowService;
+use App\Services\PaymentGatewayService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -257,6 +260,77 @@ class BuyHiveMarketplaceTest extends TestCase
     {
         $this->getJson('/api/storefront/cart')->assertUnauthorized();
         $this->getJson('/api/storefront/orders')->assertUnauthorized();
+    }
+
+    public function test_failed_payment_releases_reserved_inventory_once(): void
+    {
+        $customer = User::factory()->create();
+        $sellerUser = User::factory()->seller()->create();
+        $seller = SellerProfile::create([
+            'user_id' => $sellerUser->id,
+            'seller_type' => 'individual',
+            'business_name' => 'Stock Release Seller',
+            'town' => 'Nairobi',
+            'verification_status' => 'approved',
+        ]);
+        [$category, $subcategory, $location] = $this->catalogFixtures();
+        $product = Product::create([
+            'seller_profile_id' => $seller->id,
+            'category_id' => $category->id,
+            'subcategory_id' => $subcategory->id,
+            'location_id' => $location->id,
+            'sku' => 'BH-PAYFAIL-1',
+            'name' => 'Reserved Test Item',
+            'slug' => 'reserved-test-item',
+            'description' => 'Test inventory release',
+            'price' => 1500,
+            'town' => 'Nairobi',
+            'stage_one_status' => 'approved',
+            'is_published' => true,
+        ]);
+        $order = Order::create([
+            'order_number' => 'BH-ORD-PAYFAIL',
+            'user_id' => $customer->id,
+            'customer_name' => 'Test Customer',
+            'customer_phone' => '+254700000111',
+            'customer_email' => 'payfail@example.test',
+            'fulfilment_method' => 'delivery',
+            'subtotal' => 3000,
+            'total_amount' => 3000,
+            'payment_method' => 'mpesa',
+            'payment_status' => 'pending',
+            'status' => 'order_placed',
+        ]);
+        $item = SellerOrderItem::create([
+            'order_id' => $order->id,
+            'seller_profile_id' => $seller->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'unit_price' => 1500,
+            'line_total' => 3000,
+        ]);
+        ProductInventory::create([
+            'product_id' => $product->id,
+            'available_quantity' => 0,
+            'reserved_quantity' => 2,
+        ]);
+        $transaction = PaymentTransaction::create([
+            'order_id' => $order->id,
+            'provider' => 'mpesa',
+            'transaction_reference' => 'MPESA-FAIL-TEST',
+            'amount' => 3000,
+            'currency' => 'KES',
+            'is_sandbox' => true,
+            'status' => 'initiated',
+        ]);
+
+        $service = app(PaymentGatewayService::class);
+        $service->reconcileWebhook($transaction->transaction_reference, false, ['result' => 'failed']);
+        $this->assertDatabaseHas('product_inventories', ['product_id' => $product->id, 'available_quantity' => 2, 'reserved_quantity' => 0]);
+        $this->assertSame('failed', $order->fresh()->payment_status);
+
+        $service->reconcileWebhook($transaction->transaction_reference, false, ['result' => 'duplicate']);
+        $this->assertDatabaseHas('product_inventories', ['product_id' => $product->id, 'available_quantity' => 2, 'reserved_quantity' => 0]);
     }
 
     private function catalogFixtures(): array

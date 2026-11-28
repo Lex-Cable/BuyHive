@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\PaymentTransaction;
+use App\Models\ProductInventory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
