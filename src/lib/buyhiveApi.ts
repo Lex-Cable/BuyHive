@@ -86,3 +86,6 @@ export const createApiSellerProduct=(data:Record<string,unknown>)=>
 
 export const confirmApiCollection = (orderId:string,collectionCode:string) =>
   storefrontRequest<{data:ApiOrder}>(`/api/storefront/orders/${orderId}/confirm-collection`,{method:'POST',body:JSON.stringify({collection_code:collectionCode})});
+
+export const submitApiOrderFeedback = (orderId:string,data:Record<string,unknown>) =>
+  storefrontRequest<{feedback_id:number;loyalty_points_awarded:number}>(`/api/storefront/orders/${orderId}/feedback`,{method:'POST',body:JSON.stringify(data)});

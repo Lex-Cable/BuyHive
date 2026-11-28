@@ -33,7 +33,7 @@ import {
   INITIAL_TICKETS,
 } from '../data/seedCatalog';
 import { CATEGORIES, IMG_HERO } from '../data/categories';
-import { fetchPublicCatalog, getStorefrontSession, loginStorefront, logoutStorefront, registerStorefront, fetchStorefrontMeta, fetchApiCart, addApiCartItem, updateApiCartItem, deleteApiCartItem, fetchApiOrders, checkoutApiOrder, createApiSellerProduct, confirmApiCollection, fetchApiSellerProducts, type ApiUser, type ApiOrder } from '../lib/buyhiveApi';
+import { fetchPublicCatalog, getStorefrontSession, loginStorefront, logoutStorefront, registerStorefront, fetchStorefrontMeta, fetchApiCart, addApiCartItem, updateApiCartItem, deleteApiCartItem, fetchApiOrders, checkoutApiOrder, createApiSellerProduct, confirmApiCollection, fetchApiSellerProducts, submitApiOrderFeedback, type ApiUser, type ApiOrder } from '../lib/buyhiveApi';
 
 export function formatKSh(amount: number): string {
   return `KSh ${Math.round(amount).toLocaleString('en-KE')}`;
@@ -111,7 +111,7 @@ interface MarketplaceContextValue extends MarketplaceState {
   }) => Promise<{ ok: boolean; order?: Order; error?: string }>;
   confirmStoreCollectionWithCode: (orderId: string, code: string) => Promise<{ ok: boolean; error?: string }>;
   advanceOrderFulfilmentStage: (orderId: string, simulateStage2Failure?: boolean) => void;
-  submitOrderFeedback: (feedback: Omit<CustomerFeedback, 'id' | 'customerId' | 'createdAt'>) => { ok: boolean; error?: string };
+  submitOrderFeedback: (feedback: Omit<CustomerFeedback, 'id' | 'customerId' | 'createdAt'>) => Promise<{ ok: boolean; error?: string }>;
   redeemRewardPoints: (points: number) => { ok: boolean; couponCode?: string; error?: string };
   addCustomerAddress: (addr: { label: string; countySlug: string; town: string; street: string }) => void;
   updateCustomerProfile: (data: { fullName: string; phone: string }) => void;
@@ -881,7 +881,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }));
   };
 
-  const submitOrderFeedback: MarketplaceContextValue['submitOrderFeedback'] = (feedback) => {
+  const submitOrderFeedback: MarketplaceContextValue['submitOrderFeedback'] = async (feedback) => {
     if (!state.customerUser) return { ok: false, error: 'Login required.' };
     const order = state.orders.find((o) => o.id === feedback.orderId && o.customerId === state.customerUser?.id);
     if (!order) return { ok: false, error: 'Order not found.' };
@@ -900,6 +900,29 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     if (order.feedbackSubmitted) {
       return { ok: false, error: 'Feedback has already been submitted for this order.' };
+    }
+    if (catalogSource === 'api') {
+      try {
+        const response=await submitApiOrderFeedback(order.id,{
+          overall_rating:feedback.overallRating,would_shop_again:feedback.wouldShopAgain,
+          question_ratings:{
+            smooth_experience:feedback.answers.smoothExperience,easy_ordering:feedback.answers.easyOrdering,
+            convenient_payment:feedback.answers.convenientPayment,on_time_fulfilment:feedback.answers.onTimeFulfilment,
+            matched_description:feedback.answers.matchedDescription,good_condition:feedback.answers.goodCondition,
+            satisfactory_packaging:feedback.answers.satisfactoryPackaging,service_satisfaction:feedback.answers.serviceSatisfaction,
+          },
+          comments:feedback.comments,complaints:feedback.answers.hadDifficulties?feedback.answers.difficultyDetails:null,
+          improvement_suggestions:feedback.answers.improvementSuggestion,
+        });
+        setState((previous)=>({...previous,
+          orders:previous.orders.map((item)=>item.id===order.id?{...item,feedbackSubmitted:true,status:'completed'}:item),
+          customerUser:previous.customerUser?{...previous.customerUser,loyaltyPoints:previous.customerUser.loyaltyPoints+response.loyalty_points_awarded}:null,
+        }));
+        notify('Thank you! Your verified feedback was recorded.','success');
+        return {ok:true};
+      } catch(error) {
+        return {ok:false,error:error instanceof Error?error.message:'Feedback could not be submitted.'};
+      }
     }
 
     const newFeedback: CustomerFeedback = {
