@@ -490,15 +490,16 @@ Open `http://localhost:3000`. The root Vite server forwards `/api/*` to Laravel 
 - Seller product creation is persisted in Laravel; images are decoded, MIME-checked and stored on the public disk.
 - Order history is loaded from Laravel for the signed-in customer.
 - Collection confirmation is validated server-side and seller earnings are released only after the required inspection and receipt conditions.
-- Customer and seller support, wishlist, address, reward, seller earnings and payout API routes are available for further UI wiring.
+- Customer wishlist, address book, profile, rewards and support actions use authenticated Laravel endpoints.
+- Seller profile, product stock/pause/resubmission, order preparation, message-read and payout-request actions use authenticated Laravel endpoints.
 
 ### Important integration boundaries
 
 - Payment initiation is currently sandbox-only. The API does not claim that a real M-Pesa/card/PayPal charge has occurred. Production checkout is blocked until a real provider adapter and credentials are configured.
 - M-Pesa callback handling requires the configured callback HMAC secret; this is a BuyHive integration guard, not a complete Daraja callback adapter.
-- Collection codes are intentionally not returned in the order API. A production SMS/email notification provider and the separate field-operations workflow must deliver/verify collection codes.
-- Seller KRA/document verification and secure payout-account capture/settlement require dedicated document and encrypted account workflows. The registration form's KRA/payout fields are not treated as verified data.
-- Seller dashboard metrics, product creation and the main order/earnings API are connected, but not every seller settings, messaging, promotion and payout action has a finished React-to-API workflow.
+- Collection codes are exposed only to the owning customer after payment and Stage-2 inspection have reached ready-for-collection. Production SMS/email delivery and the separate field-operations verification remain to be configured.
+- Seller KRA/document verification still requires a private document-upload and management review workflow. Payout account details are encrypted and saved as unverified until the management/finance verification process is implemented. No funds are transferred by the payout-request endpoint.
+- Seller dashboard product, order, earnings and messaging data is loaded from Laravel. Promotions and production finance settlement remain deferred until their business rules and providers are configured.
 - The separate management/inspection system remains a signed machine-to-machine integration and is not exposed as a customer/admin portal.
 
 

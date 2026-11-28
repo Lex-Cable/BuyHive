@@ -10,6 +10,7 @@ use App\Models\PaymentTransaction;
 use App\Models\ProductInventory;
 use App\Models\Product;
 use App\Models\SellerOrderItem;
+use App\Models\SellerPayoutAccount;
 use App\Models\SellerProfile;
 use App\Models\Subcategory;
 use App\Models\User;
@@ -18,6 +19,7 @@ use App\Services\FeedbackEligibilityService;
 use App\Services\InspectionWorkflowService;
 use App\Services\PaymentGatewayService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class BuyHiveMarketplaceTest extends TestCase
@@ -331,6 +333,36 @@ class BuyHiveMarketplaceTest extends TestCase
 
         $service->reconcileWebhook($transaction->transaction_reference, false, ['result' => 'duplicate']);
         $this->assertDatabaseHas('product_inventories', ['product_id' => $product->id, 'available_quantity' => 2, 'reserved_quantity' => 0]);
+    }
+
+    public function test_seller_payout_account_is_encrypted_and_cannot_be_paid_before_verification(): void
+    {
+        $sellerUser = User::factory()->seller()->create();
+        $seller = SellerProfile::create([
+            'user_id' => $sellerUser->id,
+            'seller_type' => 'individual',
+            'business_name' => 'Payout Test Seller',
+            'town' => 'Eldoret',
+            'verification_status' => 'approved',
+        ]);
+
+        $this->actingAs($sellerUser)->postJson('/api/storefront/seller/payout-account', [
+            'payout_method' => 'mpesa_till',
+            'account_label' => 'Business Till',
+            'account_details' => '5892014',
+        ])->assertAccepted()
+          ->assertJsonPath('payout_account.is_verified', false);
+
+        $stored = DB::table('seller_payout_accounts')
+            ->where('seller_profile_id', $seller->id)
+            ->value('encrypted_account_details');
+
+        $this->assertNotSame('5892014', $stored);
+        $this->assertSame('5892014', SellerPayoutAccount::where('seller_profile_id', $seller->id)->first()->encrypted_account_details);
+
+        $this->postJson('/api/storefront/seller/payouts/request')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('payout');
     }
 
     private function catalogFixtures(): array

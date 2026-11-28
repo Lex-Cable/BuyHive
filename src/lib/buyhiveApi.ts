@@ -92,3 +92,21 @@ export const submitApiOrderFeedback = (orderId:string,data:Record<string,unknown
 
 export const confirmApiSandboxPayment = (transactionId:string,succeeded:boolean) =>
   storefrontRequest<{order:ApiOrder;payment_status:string}>(`/api/storefront/payments/${transactionId}/sandbox-confirm`,{method:'POST',body:JSON.stringify({succeeded})});
+
+export const fetchApiWishlist = () => storefrontRequest<{product_ids:string[]}>('/api/storefront/wishlist');
+export const toggleApiWishlist = (productId:string) => storefrontRequest<{saved:boolean}>(`/api/storefront/wishlist/${productId}`,{method:'POST',body:'{}'});
+export const fetchApiAddresses = () => storefrontRequest<{data:any[]}>('/api/storefront/addresses');
+export const saveApiAddress = (data:Record<string,unknown>) => storefrontRequest<{data:any}>('/api/storefront/addresses',{method:'POST',body:JSON.stringify(data)});
+export const updateApiCustomerProfile = (data:{name:string;phone:string}) => storefrontRequest<{data:ApiUser}>('/api/storefront/profile',{method:'PATCH',body:JSON.stringify(data)});
+export const fetchApiRewards = () => storefrontRequest<{points:number;transactions:any[]}>('/api/storefront/rewards');
+export const redeemApiRewards = (points:number) => storefrontRequest<{coupon_code:string;discount_value:number}>('/api/storefront/rewards/redeem',{method:'POST',body:JSON.stringify({points})});
+export const createApiTicket = (data:Record<string,unknown>) => storefrontRequest<{data:any}>('/api/storefront/support/tickets',{method:'POST',body:JSON.stringify(data)});
+export const updateApiSellerProfile = (data:Record<string,unknown>) => storefrontRequest<{data:any}>('/api/storefront/seller/profile',{method:'PATCH',body:JSON.stringify(data)});
+export const saveApiSellerPayoutAccount = (data:Record<string,unknown>) => storefrontRequest<{message:string;payout_account:any}>('/api/storefront/seller/payout-account',{method:'POST',body:JSON.stringify(data)});
+export const markApiSellerMessageRead = (id:string) => storefrontRequest<{updated:boolean}>(`/api/storefront/seller/messages/${id}/read`,{method:'PATCH',body:'{}'});
+export const updateApiSellerProduct = (id:string,data:Record<string,unknown>) => storefrontRequest<{data:any}>(`/api/storefront/seller/products/${id}`,{method:'PATCH',body:JSON.stringify(data)});
+export const resubmitApiSellerProduct = (id:string) => storefrontRequest<{submitted:boolean}>(`/api/storefront/seller/products/${id}/resubmit`,{method:'POST',body:'{}'});
+export const markApiSellerItemReady = (id:string) => storefrontRequest<{updated:boolean}>(`/api/storefront/seller/orders/items/${id}/ready-for-pickup`,{method:'POST',body:'{}'});
+export const requestApiSellerPayout = () => storefrontRequest<{data:{id:string;reference:string;amount:number;status:string;message:string}}>('/api/storefront/seller/payouts/request',{method:'POST',body:'{}'});
+export const fetchApiSellerOrders = () => storefrontRequest<{data:any[]}>('/api/storefront/seller/orders');
+export const fetchApiSellerMessages = () => storefrontRequest<{data:any[]}>('/api/storefront/seller/messages');
