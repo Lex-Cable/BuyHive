@@ -1,38 +1,39 @@
 <?php
 
-namespace App\\Http\\Controllers\\Api;
+namespace App\Http\Controllers\Api;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\Cart;
-use App\\Models\\CartItem;
-use App\\Models\\Category;
-use App\\Models\\Coupon;
-use App\\Models\\CustomerAddress;
-use App\\Models\\Location;
-use App\\Models\\Order;
-use App\\Models\\PaymentTransaction;
-use App\\Models\\Product;
-use App\\Models\\ProductInventory;
-use App\\Models\\ProductVariation;
-use App\\Models\\RewardTransaction;
-use App\\Models\\SellerEarning;
-use App\\Models\\SellerMessage;
-use App\\Models\\SellerOrderItem;
-use App\\Models\\SupportTicket;
-use App\\Models\\User;
-use App\\Models\\Wishlist;
-use App\\Models\\WishlistItem;
-use App\\Services\\CheckoutService;
-use App\\Services\\FeedbackEligibilityService;
-use App\\Services\\InspectionWorkflowService;
-use App\\Services\\PaymentGatewayService;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Auth;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Hash;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\ValidationException;
+use App\Http\Controllers\Controller;
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Category;
+use App\Models\Coupon;
+use App\Models\CustomerAddress;
+use App\Models\Location;
+use App\Models\Order;
+use App\Models\PaymentTransaction;
+use App\Models\Product;
+use App\Models\ProductInventory;
+use App\Models\ProductVariation;
+use App\Models\RewardTransaction;
+use App\Models\SellerEarning;
+use App\Models\SellerMessage;
+use App\Models\SellerOrderItem;
+use App\Models\SupportTicket;
+use App\Models\User;
+use App\Models\Wishlist;
+use App\Models\WishlistItem;
+use App\Services\CheckoutService;
+use App\Services\FeedbackEligibilityService;
+use App\Services\InspectionWorkflowService;
+use App\Services\PaymentGatewayService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class StorefrontController extends Controller
 {
