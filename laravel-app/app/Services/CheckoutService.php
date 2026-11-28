@@ -50,7 +50,11 @@ class CheckoutService
 
                 $inventory = ProductInventory::query()
                     ->where('product_id', $product->id)
-                    ->when($item->product_variation_id, fn ($q) => $q->where('product_variation_id', $item->product_variation_id))
+                    ->when(
+                        $item->product_variation_id,
+                        fn ($q) => $q->where('product_variation_id', $item->product_variation_id),
+                        fn ($q) => $q->whereNull('product_variation_id')
+                    )
                     ->lockForUpdate()
                     ->first();
 

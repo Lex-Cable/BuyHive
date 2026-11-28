@@ -59,6 +59,22 @@ class PaymentGatewayService
 
             $order = $tx->order;
             if ($succeeded) {
+                foreach ($order->sellerItems as $item) {
+                    $inventory = ProductInventory::query()
+                        ->where('product_id', $item->product_id)
+                        ->when(
+                            $item->product_variation_id,
+                            fn ($query) => $query->where('product_variation_id', $item->product_variation_id),
+                            fn ($query) => $query->whereNull('product_variation_id')
+                        )
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($inventory) {
+                        $inventory->decrement('reserved_quantity', min($inventory->reserved_quantity, $item->quantity));
+                    }
+                }
+
                 $order->update([
                     'payment_status' => 'paid',
                     'status' => 'seller_notified',

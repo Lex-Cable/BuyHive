@@ -500,3 +500,13 @@ Open `http://localhost:3000`. The root Vite server forwards `/api/*` to Laravel 
 - Seller KRA/document verification and secure payout-account capture/settlement require dedicated document and encrypted account workflows. The registration form's KRA/payout fields are not treated as verified data.
 - Seller dashboard metrics, product creation and the main order/earnings API are connected, but not every seller settings, messaging, promotion and payout action has a finished React-to-API workflow.
 - The separate management/inspection system remains a signed machine-to-machine integration and is not exposed as a customer/admin portal.
+
+
+### Additional seller account and fulfilment safeguards
+
+- Seller business profile edits now persist to the authenticated seller profile.
+- Payout account details are encrypted at rest by Laravel's encrypted model cast; the account is marked unverified when changed.
+- Payout requests lock and attach only currently available, unassigned earnings in one database transaction. A request is recorded as pending; no funds are transferred by this endpoint.
+- Seller order views expose only anonymized order references and that seller's own line items, not customer contact or delivery address details.
+- Customer collection codes are returned only to the owning customer after payment and Stage-2 inspection have reached the ready-for-collection state.
+- Checkout now selects the correct base inventory row when an item has no variation, and successful payment reconciliation clears the reserved quantity without restoring sold stock.

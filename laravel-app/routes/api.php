@@ -46,6 +46,10 @@ Route::middleware('web')->prefix('storefront')->group(function () {
 
         Route::prefix('seller')->middleware('seller')->group(function () {
             Route::get('/dashboard', [StorefrontController::class, 'sellerDashboard']);
+            Route::get('/profile', [StorefrontController::class, 'sellerProfile']);
+            Route::patch('/profile', [StorefrontController::class, 'updateSellerProfile']);
+            Route::post('/payout-account', [StorefrontController::class, 'saveSellerPayoutAccount']);
+            Route::get('/messages', [StorefrontController::class, 'sellerMessages']);
             Route::get('/products', [StorefrontController::class, 'sellerProducts']);
             Route::post('/products', [StorefrontController::class, 'createSellerProduct']);
             Route::patch('/products/{product}', [StorefrontController::class, 'updateSellerProduct']);

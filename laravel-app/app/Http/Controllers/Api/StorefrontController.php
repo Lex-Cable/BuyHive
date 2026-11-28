@@ -18,6 +18,8 @@ use App\Models\RewardTransaction;
 use App\Models\SellerEarning;
 use App\Models\SellerMessage;
 use App\Models\SellerOrderItem;
+use App\Models\SellerPayout;
+use App\Models\SellerPayoutAccount;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\Wishlist;
@@ -401,6 +403,91 @@ class StorefrontController extends Controller
         return response()->json(['coupon_code'=>$code,'discount_value'=>$value]);
     }
 
+    public function sellerProfile(Request $request): JsonResponse
+    {
+        $seller = $request->user()->sellerProfile;
+        abort_unless($seller, 403);
+        $account = SellerPayoutAccount::query()->where('seller_profile_id', $seller->id)->first();
+
+        return response()->json(['data' => [
+            'business_name' => $seller->business_name,
+            'seller_type' => $seller->seller_type,
+            'verification_status' => $seller->verification_status,
+            'town' => $seller->town,
+            'business_description' => $seller->business_description,
+            'phone' => $request->user()->phone,
+            'payout_account' => $account ? [
+                'payout_method' => $account->payout_method,
+                'account_label' => $account->account_label,
+                'is_verified' => (bool) $account->is_verified,
+            ] : null,
+        ]]);
+    }
+
+    public function updateSellerProfile(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'business_name' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:32'],
+            'town' => ['required', 'string', 'max:100'],
+            'business_description' => ['nullable', 'string', 'max:3000'],
+        ]);
+
+        DB::transaction(function () use ($request, $data) {
+            $request->user()->update(['phone' => $data['phone']]);
+            $request->user()->sellerProfile()->update([
+                'business_name' => $data['business_name'],
+                'town' => $data['town'],
+                'business_description' => $data['business_description'] ?? null,
+            ]);
+        });
+
+        return $this->sellerProfile($request);
+    }
+
+    public function saveSellerPayoutAccount(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'payout_method' => ['required', 'in:mpesa_till,mpesa_phone,bank_transfer'],
+            'account_label' => ['required', 'string', 'max:120'],
+            'account_details' => ['required', 'string', 'max:500'],
+        ]);
+
+        $seller = $request->user()->sellerProfile;
+        abort_unless($seller, 403);
+
+        $account = SellerPayoutAccount::query()->updateOrCreate(
+            ['seller_profile_id' => $seller->id],
+            [
+                'payout_method' => $data['payout_method'],
+                'account_label' => $data['account_label'],
+                'encrypted_account_details' => $data['account_details'],
+                'is_verified' => false,
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Payout details saved securely and submitted for verification. Payouts remain locked until verification is completed.',
+            'payout_account' => [
+                'payout_method' => $account->payout_method,
+                'account_label' => $account->account_label,
+                'is_verified' => false,
+            ],
+        ], 202);
+    }
+
+    public function sellerMessages(Request $request): JsonResponse
+    {
+        $seller = $request->user()->sellerProfile;
+        abort_unless($seller, 403);
+
+        return response()->json(['data' => SellerMessage::query()
+            ->where('seller_profile_id', $seller->id)
+            ->latest()
+            ->limit(100)
+            ->get(['id', 'type', 'title', 'body', 'is_read', 'created_at'])]);
+    }
+
     public function sellerDashboard(Request $request): JsonResponse
     {
         $seller=$request->user()->sellerProfile;
@@ -502,12 +589,14 @@ class StorefrontController extends Controller
     {
         $seller=$request->user()->sellerProfile;
         abort_unless($seller,403);
-        $items=SellerOrderItem::where('seller_profile_id',$seller->id)->with(['order:id,order_number,payment_status,status,created_at','product:id,name,sku'])->latest()->get();
+        $items=SellerOrderItem::where('seller_profile_id',$seller->id)->with(['order:id,order_number,payment_status,status,created_at','product:id,name,sku','commissionRecord','earning'])->latest()->get();
         return response()->json(['data'=>$items->map(fn($item)=>[
-            'id'=>$item->id,'order_reference'=>$item->order->order_number,'payment_status'=>$item->order->payment_status,'order_status'=>$item->order->status,
+            'id'=>(string)$item->id,'product_id'=>(string)$item->product_id,'order_reference'=>$item->order->order_number,'payment_status'=>$item->order->payment_status,'order_status'=>$item->order->status,
             'order_date'=>$item->order->created_at?->toDateString(),'product_name'=>$item->product->name,'quantity'=>$item->quantity,
             'unit_price'=>(float)$item->unit_price,'line_total'=>(float)$item->line_total,'preparation_deadline'=>$item->preparation_deadline,
             'collection_status'=>$item->collection_status,'stage_two_status'=>$item->stage_two_status,
+            'commission_rate_percent'=>(float)($item->commissionRecord?->rate_percent ?? 0),'commission_amount'=>(float)($item->commissionRecord?->commission_amount ?? 0),
+            'net_seller_proceeds'=>(float)($item->earning?->net_amount ?? 0),'earnings_status'=>$item->earning?->status ?? 'pending',
         ])]);
     }
 
@@ -531,13 +620,57 @@ class StorefrontController extends Controller
 
     public function requestPayout(Request $request): JsonResponse
     {
-        $seller=$request->user()->sellerProfile;
-        abort_unless($seller,403);
-        $amount=(float)$seller->earnings()->where('status','available')->sum('net_amount');
-        if($amount<=0) throw ValidationException::withMessages(['payout'=>'There is no cleared seller balance available.']);
-        $account=DB::table('seller_payout_accounts')->where('seller_profile_id',$seller->id)->where('is_verified',true)->first();
-        if(!$account) throw ValidationException::withMessages(['payout'=>'Add and verify a payout account before requesting a payout.']);
-        return response()->json(['message'=>'Payout request requires finance-side processing. No funds have been transferred.','available_amount'=>$amount],202);
+        $seller = $request->user()->sellerProfile;
+        abort_unless($seller, 403);
+
+        $payout = DB::transaction(function () use ($seller) {
+            $account = SellerPayoutAccount::query()
+                ->where('seller_profile_id', $seller->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$account || !$account->is_verified) {
+                throw ValidationException::withMessages([
+                    'payout' => 'Your payout account must be verified before you can request settlement.',
+                ]);
+            }
+
+            $earnings = SellerEarning::query()
+                ->where('seller_profile_id', $seller->id)
+                ->where('status', 'available')
+                ->whereNull('seller_payout_id')
+                ->lockForUpdate()
+                ->get();
+
+            $amount = (float) $earnings->sum('net_amount');
+            if ($amount <= 0) {
+                throw ValidationException::withMessages(['payout' => 'There is no cleared seller balance available.']);
+            }
+
+            $payout = SellerPayout::create([
+                'seller_profile_id' => $seller->id,
+                'payout_reference' => 'BH-PAY-' . strtoupper(Str::random(10)),
+                'amount' => $amount,
+                'payout_channel' => $account->payout_method,
+                'status' => 'pending',
+            ]);
+
+            SellerEarning::query()->whereIn('id', $earnings->pluck('id'))->update([
+                'seller_payout_id' => $payout->id,
+            ]);
+
+            return $payout;
+        });
+
+        return response()->json([
+            'data' => [
+                'id' => (string) $payout->id,
+                'reference' => $payout->payout_reference,
+                'amount' => (float) $payout->amount,
+                'status' => $payout->status,
+                'message' => 'Payout request recorded. This is not a funds transfer; finance processing is still required.',
+            ],
+        ], 202);
     }
 
     public function createSellerSupportTicket(Request $request): JsonResponse
@@ -578,7 +711,7 @@ class StorefrontController extends Controller
             'fulfilment_method'=>$order->fulfilment_method,'delivery_town'=>$order->delivery_town,
             'delivery_street'=>$order->delivery_street,'collection_hub_name'=>$order->collection_hub_name,
             // Collection codes are delivered through the configured customer notification channel, never returned by the API.
-            'collection_code'=>null,'collection_confirmed'=>$order->collection_confirmed,'delivery_confirmed'=>$order->delivery_confirmed,
+            'collection_code'=>($order->status === 'ready_for_collection' && $order->payment_status === 'paid') ? $order->collection_code : null,'collection_confirmed'=>$order->collection_confirmed,'delivery_confirmed'=>$order->delivery_confirmed,
             'payment_method'=>$order->payment_method,'payment_status'=>$order->payment_status,'payment_reference'=>$order->paymentTransactions->first()?->transaction_reference,
             'subtotal'=>(float)$order->subtotal,'coupon_discount'=>(float)$order->coupon_discount,'delivery_fee'=>(float)$order->delivery_fee,'total_amount'=>(float)$order->total_amount,
             'status'=>$order->status,'feedback_submitted'=>$order->feedback_submitted,'created_at'=>$order->created_at?->toISOString(),
