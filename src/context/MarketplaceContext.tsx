@@ -440,7 +440,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       navigate('/login');
       return;
     }
-    if (backendSession && /^\\d+$/.test(productId)) {
+    if (backendSession && /^\d+$/.test(productId)) {
       void toggleApiWishlist(productId).then(async (result) => {
         const wishlist = await fetchApiWishlist();
         setState((previous)=>({...previous,customerUser:previous.customerUser?{...previous.customerUser,wishlistIds:wishlist.product_ids}:null}));
@@ -466,7 +466,11 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    if(state.customerUser && catalogSource==='api'){
+    if(state.customerUser && backendSession){
+      if(!/^\d+$/.test(productId)){
+        notify('This is a preview product. Only live Laravel catalogue products can be purchased from an authenticated account.','info');
+        return;
+      }
       void addApiCartItem({product_id:Number(productId),variation_id:chosenVar?.id?Number(chosenVar.id):undefined,quantity})
         .then((response)=>setState((previous)=>({...previous,cart:response.items.map((i)=>({id:i.id,productId:i.productId,variationId:i.variationId ?? undefined,quantity:i.quantity}))})))
         .catch((error)=>notify(error instanceof Error?error.message:'Unable to update your cart.','error'));
@@ -504,7 +508,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       removeFromCart(cartItemId);
       return;
     }
-    if(state.customerUser && catalogSource==='api' && /^\\d+$/.test(cartItemId)){
+    if(state.customerUser && catalogSource==='api' && /^\d+$/.test(cartItemId)){
       void updateApiCartItem(cartItemId,quantity).then((response)=>setState((previous)=>({...previous,cart:response.items.map((i)=>({id:i.id,productId:i.productId,variationId:i.variationId ?? undefined,quantity:i.quantity}))})))
         .catch((error)=>notify(error instanceof Error?error.message:'Unable to update your cart.','error'));
       return;
@@ -522,7 +526,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const removeFromCart = (cartItemId: string) => {
-    if(state.customerUser && catalogSource==='api' && /^\\d+$/.test(cartItemId)){
+    if(state.customerUser && catalogSource==='api' && /^\d+$/.test(cartItemId)){
       void deleteApiCartItem(cartItemId).then((response)=>setState((previous)=>({...previous,cart:response.items.map((i)=>({id:i.id,productId:i.productId,variationId:i.variationId ?? undefined,quantity:i.quantity}))}))).catch((error)=>notify(error instanceof Error?error.message:'Unable to remove this item.','error'));
       return;
     }
