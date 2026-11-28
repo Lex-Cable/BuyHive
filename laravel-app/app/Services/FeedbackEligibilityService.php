@@ -21,7 +21,7 @@ class FeedbackEligibilityService
             return false;
         }
 
-        return $order->isReceiptConfirmed();
+        return $order->payment_status === 'paid' && $order->isReceiptConfirmed();
     }
 
     public function submitFeedback(Order $order, array $payload): CustomerFeedback

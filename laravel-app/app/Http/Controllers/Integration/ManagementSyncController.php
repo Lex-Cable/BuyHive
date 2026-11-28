@@ -70,6 +70,14 @@ class ManagementSyncController extends Controller
             'collection_code' => ['nullable', 'string'],
         ]);
 
+        abort_unless($order->payment_status === 'paid', 409, 'Payment must be verified before fulfilment receipt can be confirmed.');
+        $order->load('sellerItems');
+        abort_unless(
+            $order->sellerItems->isNotEmpty() && $order->sellerItems->every(fn (SellerOrderItem $item) => $item->stage_two_status === 'passed'),
+            409,
+            'Every order item must pass Stage-2 inspection before receipt can be confirmed.'
+        );
+
         if ($data['type'] === 'store_collection') {
             abort_unless($order->collection_code === ($data['collection_code'] ?? ''), 422, 'Invalid collection code.');
             $order->update(['collection_confirmed' => true, 'status' => 'collected']);

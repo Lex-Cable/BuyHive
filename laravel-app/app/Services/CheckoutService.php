@@ -50,7 +50,11 @@ class CheckoutService
 
                 $inventory = ProductInventory::query()
                     ->where('product_id', $product->id)
-                    ->when($item->product_variation_id, fn ($q) => $q->where('product_variation_id', $item->product_variation_id))
+                    ->when(
+                        $item->product_variation_id,
+                        fn ($q) => $q->where('product_variation_id', $item->product_variation_id),
+                        fn ($q) => $q->whereNull('product_variation_id')
+                    )
                     ->lockForUpdate()
                     ->first();
 
@@ -185,6 +189,18 @@ class CheckoutService
         $alreadyUsed = CouponRedemption::where('coupon_id', $coupon->id)->where('user_id', $customer->id)->exists();
         if ($alreadyUsed) {
             throw ValidationException::withMessages(['coupon_code' => 'You have already redeemed this coupon.']);
+        }
+
+        if ($coupon->max_redemptions !== null && $coupon->redemptions()->count() >= $coupon->max_redemptions) {
+            throw ValidationException::withMessages(['coupon_code' => 'This coupon has reached its redemption limit.']);
+        }
+
+        $eligibleProducts = collect($lines)->pluck('product');
+        if ($coupon->category_id && !$eligibleProducts->contains(fn (Product $product) => (int) $product->category_id === (int) $coupon->category_id)) {
+            throw ValidationException::withMessages(['coupon_code' => 'This coupon is restricted to a different product category.']);
+        }
+        if ($coupon->product_id && !$eligibleProducts->contains(fn (Product $product) => (int) $product->id === (int) $coupon->product_id)) {
+            throw ValidationException::withMessages(['coupon_code' => 'This coupon is restricted to a different product.']);
         }
 
         $discount = $coupon->discount_type === 'percentage'

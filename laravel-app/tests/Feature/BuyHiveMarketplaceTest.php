@@ -6,15 +6,20 @@ use App\Models\Category;
 use App\Models\CustomerProfile;
 use App\Models\Location;
 use App\Models\Order;
+use App\Models\PaymentTransaction;
+use App\Models\ProductInventory;
 use App\Models\Product;
 use App\Models\SellerOrderItem;
+use App\Models\SellerPayoutAccount;
 use App\Models\SellerProfile;
 use App\Models\Subcategory;
 use App\Models\User;
 use App\Services\CommissionService;
 use App\Services\FeedbackEligibilityService;
 use App\Services\InspectionWorkflowService;
+use App\Services\PaymentGatewayService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class BuyHiveMarketplaceTest extends TestCase
@@ -149,6 +154,215 @@ class BuyHiveMarketplaceTest extends TestCase
         $calc = app(CommissionService::class)->calculateBreakdown(10000, 10.0);
         $this->assertEquals(1000.00, $calc['commission_amount']);
         $this->assertEquals(9000.00, $calc['net_seller_proceeds']);
+    }
+
+    public function test_react_storefront_catalog_api_returns_only_approved_products_without_seller_identity(): void
+    {
+        $sellerUser = User::factory()->seller()->create();
+        $seller = SellerProfile::create([
+            'user_id' => $sellerUser->id,
+            'seller_type' => 'registered_business',
+            'business_name' => 'Private Seller Company',
+            'town' => 'Westlands',
+            'verification_status' => 'approved',
+        ]);
+        [$category, $subcategory, $location] = $this->catalogFixtures();
+
+        Product::create([
+            'seller_profile_id' => $seller->id,
+            'category_id' => $category->id,
+            'subcategory_id' => $subcategory->id,
+            'location_id' => $location->id,
+            'sku' => 'BH-API-APPROVED',
+            'name' => 'Approved Public Product',
+            'slug' => 'approved-public-product',
+            'description' => 'Visible in the React storefront.',
+            'price' => 2500,
+            'town' => 'Westlands',
+            'stage_one_status' => 'approved',
+            'is_published' => true,
+        ]);
+
+        Product::create([
+            'seller_profile_id' => $seller->id,
+            'category_id' => $category->id,
+            'subcategory_id' => $subcategory->id,
+            'location_id' => $location->id,
+            'sku' => 'BH-API-PENDING',
+            'name' => 'Pending Product Must Stay Hidden',
+            'slug' => 'pending-product-must-stay-hidden',
+            'description' => 'Not approved for listing.',
+            'price' => 1200,
+            'town' => 'Westlands',
+            'stage_one_status' => 'pending_inspection',
+            'is_published' => false,
+        ]);
+
+        $response = $this->getJson('/api/catalog');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Approved Public Product')
+            ->assertJsonPath('data.0.sellerId', '__server-approved__')
+            ->assertJsonMissingPath('data.0.seller_name')
+            ->assertJsonMissingPath('data.0.seller_email')
+            ->assertJsonMissingPath('data.0.seller_phone')
+            ->assertJsonMissing(['name' => 'Pending Product Must Stay Hidden']);
+
+        $this->assertStringNotContainsString('Private Seller Company', $response->getContent());
+    }
+
+    public function test_storefront_customer_registration_creates_a_real_session_and_profile(): void
+    {
+        $response = $this->postJson('/api/storefront/register', [
+            'name' => 'Test Customer',
+            'email' => 'buyer@example.test',
+            'phone' => '+254700111222',
+            'password' => 'SecurePass2026!',
+            'password_confirmation' => 'SecurePass2026!',
+            'role' => 'customer',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('user.role', 'customer')
+            ->assertJsonPath('user.name', 'Test Customer');
+
+        $this->assertDatabaseHas('users', ['email' => 'buyer@example.test', 'primary_role' => 'customer']);
+        $this->assertDatabaseHas('customer_profiles', ['loyalty_points' => 150]);
+        $this->getJson('/api/storefront/session')
+            ->assertOk()
+            ->assertJsonPath('authenticated', true)
+            ->assertJsonPath('user.email', 'buyer@example.test');
+    }
+
+    public function test_storefront_login_rejects_wrong_portal_role_and_accepts_phone_identity(): void
+    {
+        $customer = User::factory()->create([
+            'name' => 'Phone Buyer',
+            'email' => 'phonebuyer@example.test',
+            'phone' => '+254700123456',
+            'password' => bcrypt('SecurePass2026!'),
+            'primary_role' => 'customer',
+        ]);
+
+        $this->postJson('/api/storefront/login', [
+            'email_or_phone' => '+254700123456',
+            'password' => 'SecurePass2026!',
+            'role' => 'seller',
+        ])->assertUnprocessable();
+
+        $this->postJson('/api/storefront/login', [
+            'email_or_phone' => '+254700123456',
+            'password' => 'SecurePass2026!',
+            'role' => 'customer',
+        ])->assertOk()->assertJsonPath('user.id', (string) $customer->id);
+    }
+
+    public function test_storefront_cart_and_orders_require_an_authenticated_session(): void
+    {
+        $this->getJson('/api/storefront/cart')->assertUnauthorized();
+        $this->getJson('/api/storefront/orders')->assertUnauthorized();
+    }
+
+    public function test_failed_payment_releases_reserved_inventory_once(): void
+    {
+        $customer = User::factory()->create();
+        $sellerUser = User::factory()->seller()->create();
+        $seller = SellerProfile::create([
+            'user_id' => $sellerUser->id,
+            'seller_type' => 'individual',
+            'business_name' => 'Stock Release Seller',
+            'town' => 'Nairobi',
+            'verification_status' => 'approved',
+        ]);
+        [$category, $subcategory, $location] = $this->catalogFixtures();
+        $product = Product::create([
+            'seller_profile_id' => $seller->id,
+            'category_id' => $category->id,
+            'subcategory_id' => $subcategory->id,
+            'location_id' => $location->id,
+            'sku' => 'BH-PAYFAIL-1',
+            'name' => 'Reserved Test Item',
+            'slug' => 'reserved-test-item',
+            'description' => 'Test inventory release',
+            'price' => 1500,
+            'town' => 'Nairobi',
+            'stage_one_status' => 'approved',
+            'is_published' => true,
+        ]);
+        $order = Order::create([
+            'order_number' => 'BH-ORD-PAYFAIL',
+            'user_id' => $customer->id,
+            'customer_name' => 'Test Customer',
+            'customer_phone' => '+254700000111',
+            'customer_email' => 'payfail@example.test',
+            'fulfilment_method' => 'delivery',
+            'subtotal' => 3000,
+            'total_amount' => 3000,
+            'payment_method' => 'mpesa',
+            'payment_status' => 'pending',
+            'status' => 'order_placed',
+        ]);
+        $item = SellerOrderItem::create([
+            'order_id' => $order->id,
+            'seller_profile_id' => $seller->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'unit_price' => 1500,
+            'line_total' => 3000,
+        ]);
+        ProductInventory::create([
+            'product_id' => $product->id,
+            'available_quantity' => 0,
+            'reserved_quantity' => 2,
+        ]);
+        $transaction = PaymentTransaction::create([
+            'order_id' => $order->id,
+            'provider' => 'mpesa',
+            'transaction_reference' => 'MPESA-FAIL-TEST',
+            'amount' => 3000,
+            'currency' => 'KES',
+            'is_sandbox' => true,
+            'status' => 'initiated',
+        ]);
+
+        $service = app(PaymentGatewayService::class);
+        $service->reconcileWebhook($transaction->transaction_reference, false, ['result' => 'failed']);
+        $this->assertDatabaseHas('product_inventories', ['product_id' => $product->id, 'available_quantity' => 2, 'reserved_quantity' => 0]);
+        $this->assertSame('failed', $order->fresh()->payment_status);
+
+        $service->reconcileWebhook($transaction->transaction_reference, false, ['result' => 'duplicate']);
+        $this->assertDatabaseHas('product_inventories', ['product_id' => $product->id, 'available_quantity' => 2, 'reserved_quantity' => 0]);
+    }
+
+    public function test_seller_payout_account_is_encrypted_and_cannot_be_paid_before_verification(): void
+    {
+        $sellerUser = User::factory()->seller()->create();
+        $seller = SellerProfile::create([
+            'user_id' => $sellerUser->id,
+            'seller_type' => 'individual',
+            'business_name' => 'Payout Test Seller',
+            'town' => 'Eldoret',
+            'verification_status' => 'approved',
+        ]);
+
+        $this->actingAs($sellerUser)->postJson('/api/storefront/seller/payout-account', [
+            'payout_method' => 'mpesa_till',
+            'account_label' => 'Business Till',
+            'account_details' => '5892014',
+        ])->assertAccepted()
+          ->assertJsonPath('payout_account.is_verified', false);
+
+        $stored = DB::table('seller_payout_accounts')
+            ->where('seller_profile_id', $seller->id)
+            ->value('encrypted_account_details');
+
+        $this->assertNotSame('5892014', $stored);
+        $this->assertSame('5892014', SellerPayoutAccount::where('seller_profile_id', $seller->id)->first()->encrypted_account_details);
+
+        $this->postJson('/api/storefront/seller/payouts/request')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('payout');
     }
 
     private function catalogFixtures(): array

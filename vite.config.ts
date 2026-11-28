@@ -39,6 +39,17 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // Forward React storefront API calls to Laravel during local development.
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:8010',
+          changeOrigin: true,
+        },
+        '/storage': {
+          target: 'http://127.0.0.1:8010',
+          changeOrigin: true,
+        },
+      },
     },
   };
 });

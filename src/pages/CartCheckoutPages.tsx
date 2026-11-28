@@ -254,14 +254,14 @@ export const CheckoutPage: React.FC = () => {
   const deliveryFee = fulfilmentMethod === 'delivery' ? (countySlug === 'nairobi' ? 350 : 650) : 0;
   const totalPayable = Math.max(0, subtotal - (couponCheck.valid ? couponCheck.discount : 0) + deliveryFee);
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (fulfilmentMethod === 'delivery' && (!town.trim() || !street.trim())) {
       setError('Please enter your delivery town and street / apartment details.');
       return;
     }
-    const res = placeCheckoutOrder({
+    const res = await placeCheckoutOrder({
       customerName,
       customerPhone,
       customerEmail,
@@ -428,7 +428,7 @@ export const CheckoutPage: React.FC = () => {
                     className="w-full h-10 px-3 text-sm font-mono bg-white border border-emerald-300 rounded-lg"
                   />
                   <p className="text-[11px] text-emerald-800">
-                    Development Sandbox: Submitting simulates a verified webhook callback and records a sandbox transaction reference (`MPESA-SBX-*`).
+                    Development sandbox only: no STK push or real charge is made. A pending payment record is created and must be reconciled by a test callback.
                   </p>
                 </div>
               )}
@@ -486,7 +486,7 @@ export const CheckoutPage: React.FC = () => {
               disabled={items.length === 0}
               className="w-full py-3.5 rounded-lg bg-[#141619] hover:bg-stone-800 text-white text-sm font-semibold cursor-pointer"
             >
-              Confirm & Pay {formatKSh(totalPayable)} (Sandbox)
+              Create Order · {formatKSh(totalPayable)} (Sandbox)
             </button>
 
             <div className="flex items-center gap-2 text-xs text-stone-500">
@@ -502,8 +502,17 @@ export const CheckoutPage: React.FC = () => {
 };
 
 export const OrderConfirmationPage: React.FC<{ orderId: string }> = ({ orderId }) => {
-  const { orders, navigate } = useMarketplace();
+  const { orders, navigate, confirmSandboxPayment } = useMarketplace();
   const order = orders.find((o) => o.id === orderId);
+  const [paymentActionError, setPaymentActionError] = useState('');
+  const [paymentActionBusy, setPaymentActionBusy] = useState(false);
+  const handleSandboxPayment = async (succeeded: boolean) => {
+    setPaymentActionBusy(true);
+    setPaymentActionError('');
+    const result = await confirmSandboxPayment(orderId,succeeded);
+    if (!result.ok) setPaymentActionError(result.error || 'Sandbox payment could not be updated.');
+    setPaymentActionBusy(false);
+  };
 
   if (!order) {
     return (
@@ -528,13 +537,25 @@ export const OrderConfirmationPage: React.FC<{ orderId: string }> = ({ orderId }
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-7 h-7 text-emerald-700 shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-semibold text-emerald-700">Order Confirmed · Notification Sent</p>
+              <p className="text-xs font-semibold text-amber-700">{order.paymentStatus === 'pending' ? 'Order Created · Payment Pending' : 'Order Created · Sandbox Payment'}</p>
               <h1 className="font-display text-2xl sm:text-3xl font-bold mt-1">Thank you! Order {order.orderNumber}</h1>
               <p className="text-sm text-stone-600 mt-1">
-                Payment reference <span className="font-mono text-[#141619]">{order.paymentReference}</span> ({order.paymentMethod.toUpperCase()} Sandbox). Sellers have been notified with anonymized fulfilment references.
+                Payment reference <span className="font-mono text-[#141619]">{order.paymentReference}</span>. {order.paymentStatus === 'pending' ? 'No payment has been confirmed and no funds have been charged. Seller fulfilment remains on hold.' : 'This is a sandbox transaction only; no real funds were transferred.'}
               </p>
             </div>
           </div>
+
+          {import.meta.env.DEV && order.paymentStatus === 'pending' && order.paymentTransactionId && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
+              <div className="text-xs font-semibold text-amber-900">Local sandbox payment controls</div>
+              <p className="text-xs text-amber-800">These controls only test the local payment lifecycle. They do not contact M-Pesa, charge a card or transfer money.</p>
+              {paymentActionError && <p className="text-xs text-red-700">{paymentActionError}</p>}
+              <div className="flex flex-wrap gap-2">
+                <button type="button" disabled={paymentActionBusy} onClick={() => void handleSandboxPayment(true)} className="px-4 py-2 rounded-lg bg-[#141619] text-white text-xs font-semibold disabled:opacity-50">Mark sandbox payment successful</button>
+                <button type="button" disabled={paymentActionBusy} onClick={() => void handleSandboxPayment(false)} className="px-4 py-2 rounded-lg border border-red-300 text-red-700 text-xs font-semibold disabled:opacity-50">Simulate payment failure</button>
+              </div>
+            </div>
+          )}
 
           {order.fulfilmentMethod === 'store_collection' && order.collectionCode && (
             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -565,7 +586,7 @@ export const OrderConfirmationPage: React.FC<{ orderId: string }> = ({ orderId }
               <span>{order.fulfilmentMethod === 'delivery' ? `Delivery (${order.deliveryAddress?.town})` : order.collectionPoint}</span>
             </div>
             <div className="flex justify-between font-bold text-base pt-2">
-              <span>Total Paid</span>
+              <span>Order Total</span>
               <span className="font-mono tabular-nums">{formatKSh(order.totalAmount)}</span>
             </div>
           </div>

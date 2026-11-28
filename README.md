@@ -415,3 +415,99 @@ A license has not yet been specified. Until a license is added to this repositor
 ---
 
 **BuyHive — Discover products. Shop with confidence.**
+
+
+## React storefront and Laravel API integration
+
+The customer and seller experience remains the existing React + TypeScript application at the repository root. Laravel remains the system of record for authentication, marketplace rules, persistence, inspection, orders, payments and seller operations. The Laravel Vue/Inertia pages are not the customer storefront.
+
+### Local development
+
+Run MySQL from XAMPP, then start Laravel from a PowerShell terminal:
+
+```powershell
+cd C:\Users\elite\BuyHive\laravel-app
+php -S 127.0.0.1:8010 -t public public/index.php
+```
+
+In a second terminal, start the React application:
+
+```powershell
+cd C:\Users\elite\BuyHive
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. Vite proxies `/api/*` requests to the Laravel development server on `127.0.0.1:8010`. The PHP built-in server command above is a temporary workaround for the current Herd PHP 8.5 `artisan serve` cURL startup issue; it does not change the Laravel application.
+
+### Current integration scope
+
+- The React storefront requests `GET /api/catalog` from Laravel on startup.
+- Laravel applies the existing public-listing rule: the seller must be approved and the product must have passed Stage-1 inspection, be published and not paused.
+- The API response deliberately omits seller names, email addresses, phone numbers and private seller references.
+- If Laravel is unavailable, the React app keeps its local demo catalogue so the existing UI can still be reviewed.
+- Category identifiers are mapped to the React storefront's existing taxonomy IDs.
+
+### Not yet integrated
+
+Customer and seller login/registration, persistent carts, checkout/order creation, payments, order tracking, feedback, wishlist, support, and seller dashboard mutations still need dedicated session-authenticated API endpoints and frontend service wiring. Existing demo-mode behaviour must not be mistaken for live backend transactions. Payment provider credentials and live webhooks also remain separate configuration work.
+
+The Laravel Vue/Inertia placeholder pages remain in place for now; this change does not delete or replace them.
+
+
+## React storefront and Laravel session API
+
+The root React + TypeScript application is the customer-facing storefront and seller portal. Laravel is the backend system of record. React calls Laravel through the `/api` Vite proxy during local development. Authentication uses Laravel's first-party session cookie and CSRF protection; Sanctum and Passport are not used.
+
+### Local setup
+
+Start MySQL in XAMPP. In a terminal, prepare the Laravel database (run migrations only if they have not already been applied):
+
+```powershell
+cd C:\Users\elite\BuyHive\laravel-app
+php artisan migrate
+php artisan db:seed
+php artisan storage:link
+php -S 127.0.0.1:8010 -t public public/index.php
+```
+
+In another terminal:
+
+```powershell
+cd C:\Users\elite\BuyHive
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. The root Vite server forwards `/api/*` to Laravel on port 8010. The PHP built-in server command is a temporary workaround for the current Herd PHP 8.5 `artisan serve` cURL startup issue.
+
+### Connected workflows in this integration phase
+
+- Customer and seller registration/login use Laravel sessions, role checks and server-side validation.
+- Session identity is rehydrated from Laravel on page load; local storage no longer acts as an authentication source.
+- Public product listings come from Laravel and retain the approved-seller + Stage-1 inspection gate.
+- Customer cart items are persisted in Laravel; checkout creates an order and commission/earning ledger entries server-side.
+- Seller product creation is persisted in Laravel; images are decoded, MIME-checked and stored on the public disk.
+- Order history is loaded from Laravel for the signed-in customer.
+- Collection confirmation is validated server-side and seller earnings are released only after the required inspection and receipt conditions.
+- Customer wishlist, address book, profile, rewards and support actions use authenticated Laravel endpoints.
+- Seller profile, product stock/pause/resubmission, order preparation, message-read and payout-request actions use authenticated Laravel endpoints.
+
+### Important integration boundaries
+
+- Payment initiation is currently sandbox-only. The API does not claim that a real M-Pesa/card/PayPal charge has occurred. Production checkout is blocked until a real provider adapter and credentials are configured.
+- M-Pesa callback handling requires the configured callback HMAC secret; this is a BuyHive integration guard, not a complete Daraja callback adapter.
+- Collection codes are exposed only to the owning customer after payment and Stage-2 inspection have reached ready-for-collection. Production SMS/email delivery and the separate field-operations verification remain to be configured.
+- Seller KRA/document verification still requires a private document-upload and management review workflow. Payout account details are encrypted and saved as unverified until the management/finance verification process is implemented. No funds are transferred by the payout-request endpoint.
+- Seller dashboard product, order, earnings and messaging data is loaded from Laravel. Promotions and production finance settlement remain deferred until their business rules and providers are configured.
+- The separate management/inspection system remains a signed machine-to-machine integration and is not exposed as a customer/admin portal.
+
+
+### Additional seller account and fulfilment safeguards
+
+- Seller business profile edits now persist to the authenticated seller profile.
+- Payout account details are encrypted at rest by Laravel's encrypted model cast; the account is marked unverified when changed.
+- Payout requests lock and attach only currently available, unassigned earnings in one database transaction. A request is recorded as pending; no funds are transferred by this endpoint.
+- Seller order views expose only anonymized order references and that seller's own line items, not customer contact or delivery address details.
+- Customer collection codes are returned only to the owning customer after payment and Stage-2 inspection have reached the ready-for-collection state.
+- Checkout now selects the correct base inventory row when an item has no variation, and successful payment reconciliation clears the reserved quantity without restoring sold stock.

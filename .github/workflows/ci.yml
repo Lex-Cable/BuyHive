@@ -6,9 +6,11 @@ on:
     branches:
       - main
       - chore/laravel-test-readiness
+      - Jaccie-Jay
   pull_request:
     branches:
       - main
+      - chore/laravel-test-readiness
 
 permissions:
   contents: read

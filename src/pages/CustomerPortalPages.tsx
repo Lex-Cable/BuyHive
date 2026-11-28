@@ -77,7 +77,7 @@ export const WishlistPage: React.FC = () => {
 };
 
 export const FeedbackPage: React.FC = () => {
-  const { customerUser, orders, feedbacks, submitOrderFeedback, navigate } = useMarketplace();
+  const { customerUser, orders, feedbacks, submitOrderFeedback, navigate, notify } = useMarketplace();
   const [selectedOrderId, setSelectedOrderId] = useState('');
   const [overallRating, setOverallRating] = useState(5);
   const [wouldShopAgain, setWouldShopAgain] = useState(true);
@@ -133,10 +133,10 @@ export const FeedbackPage: React.FC = () => {
     { key: 'serviceSatisfaction', label: "8. Were you satisfied with BuyHive's service?" },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeOrder) return;
-    submitOrderFeedback({
+    const result = await submitOrderFeedback({
       orderId: activeOrder.id,
       orderNumber: activeOrder.orderNumber,
       overallRating,
@@ -149,6 +149,11 @@ export const FeedbackPage: React.FC = () => {
       },
       comments,
     });
+    if (!result.ok) {
+      notify(result.error || 'Unable to submit feedback.','error');
+      return;
+    }
+    navigate('/dashboard');
   };
 
   return (
