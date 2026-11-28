@@ -222,7 +222,6 @@ export const CustomerAuthPage: React.FC<{ mode: 'login' | 'register' | 'forgot' 
                 {mode === 'login' ? 'Sign In to Dashboard' : mode === 'register' ? 'Create Customer Account' : 'Send Reset Link'}
               </button>
 
-}
             </form>
           )}
 
