@@ -50,11 +50,6 @@ export const CustomerAuthPage: React.FC<{ mode: 'login' | 'register' | 'forgot' 
     }
   };
 
-  const fillDemoCustomer = () => {
-    setEmail('customer@buyhive.co.ke');
-    setPassword('BuyHive2026!');
-  };
-
   return (
     <div className="min-h-screen bg-[#FAF9F6] flex flex-col justify-center py-10 px-4 sm:px-6">
       <div className="max-w-md w-full mx-auto space-y-6">

@@ -437,7 +437,7 @@ class StorefrontController extends Controller
             'specifications'=>['nullable','array'],'condition'=>['required','in:New,Refurbished (Certified),Handcrafted'],
             'price'=>['required','numeric','min:50'],'original_price'=>['nullable','numeric','gt:price'],'town'=>['required','string','max:100'],
             'delivery_available'=>['required','boolean'],'collection_available'=>['required','boolean'],'warranty_info'=>['nullable','string','max:255'],
-            'stock'=>['required','integer','min:0','max:100000'],'images'=>['nullable','array','max:8'],'images.*'=>['string'],
+            'stock'=>['required','integer','min:0','max:100000'],'images'=>['nullable','array','max:4'],'images.*'=>['string'],
             'variations'=>['nullable','array','max:50'],'save_as_draft'=>['sometimes','boolean'],
         ]);
         abort_unless((int)DB::table('subcategories')->where('id',$data['subcategory_id'])->value('category_id')===(int)$data['category_id'],422);
@@ -450,12 +450,14 @@ class StorefrontController extends Controller
                 'delivery_available'=>$data['delivery_available'],'collection_available'=>$data['collection_available'],'warranty_info'=>$data['warranty_info']??null,
                 'stage_one_status'=>($data['save_as_draft']??false)?'draft':'pending_inspection','is_published'=>false,
             ]);
+            $totalImageBytes = array_sum(array_map('strlen', $data['images'] ?? []));
+            if ($totalImageBytes > 7 * 1024 * 1024) throw ValidationException::withMessages(['images' => 'Please upload product images with a combined size below 7 MB.']);
             foreach(($data['images']??[]) as $i=>$imageData) {
                 if (!preg_match('/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+\/]+=*)$/', $imageData, $matches)) {
                     throw ValidationException::withMessages(['images' => 'Product images must be valid JPEG, PNG or WebP uploads.']);
                 }
                 $bytes = base64_decode($matches[2], true);
-                if ($bytes === false || strlen($bytes) > 5 * 1024 * 1024) {
+                if ($bytes === false || strlen($bytes) > 2 * 1024 * 1024) {
                     throw ValidationException::withMessages(['images' => 'Each product image must be smaller than 5 MB.']);
                 }
                 $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
@@ -594,7 +596,11 @@ class StorefrontController extends Controller
         return [
             'id'=>(string)$product->id,'sku'=>$product->sku,'name'=>$product->name,'slug'=>$product->slug,
             'category_id'=>$product->category_id,'subcategory_id'=>$product->subcategory_id,'category'=>$product->category?->name,
-            'price'=>(float)$product->price,'stock'=>(int)$product->inventories->whereNull('product_variation_id')->sum('available_quantity'),
+            'brand'=>$product->brand,'description'=>$product->description,'specifications'=>$product->specifications ?? [],
+            'condition'=>$product->condition,'town'=>$product->town,'location_id'=>$product->location_id,
+            'delivery_available'=>$product->delivery_available,'collection_available'=>$product->collection_available,
+            'warranty_info'=>$product->warranty_info,'price'=>(float)$product->price,
+            'stock'=>(int)$product->inventories->whereNull('product_variation_id')->sum('available_quantity'),
             'stage_one_status'=>$product->stage_one_status,'is_published'=>$product->is_published,'is_paused'=>$product->is_paused,
             'images'=>$product->images->pluck('storage_path'),
         ];

@@ -83,3 +83,6 @@ export const checkoutApiOrder=(data:Record<string,unknown>)=>
 export const fetchApiSellerProducts=()=>storefrontRequest<{data:any[]}>('/api/storefront/seller/products');
 export const createApiSellerProduct=(data:Record<string,unknown>)=>
   storefrontRequest<{data:any}>('/api/storefront/seller/products',{method:'POST',body:JSON.stringify(data)});
+
+export const confirmApiCollection = (orderId:string,collectionCode:string) =>
+  storefrontRequest<{data:ApiOrder}>(`/api/storefront/orders/${orderId}/confirm-collection`,{method:'POST',body:JSON.stringify({collection_code:collectionCode})});

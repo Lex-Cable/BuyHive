@@ -98,7 +98,6 @@ export const TrackOrderPage: React.FC<{ orderId: string }> = ({ orderId }) => {
     orders,
     customerUser,
     confirmStoreCollectionWithCode,
-    advanceOrderFulfilmentStage,
     navigate,
   } = useMarketplace();
   const [collectionCodeInput, setCollectionCodeInput] = useState('');
@@ -126,10 +125,10 @@ export const TrackOrderPage: React.FC<{ orderId: string }> = ({ orderId }) => {
     (order.fulfilmentMethod === 'store_collection' && order.collectionConfirmed) ||
     order.status === 'completed';
 
-  const handleConfirmCollection = (e: React.FormEvent) => {
+  const handleConfirmCollection = async (e: React.FormEvent) => {
     e.preventDefault();
     setCodeError('');
-    const res = confirmStoreCollectionWithCode(order.id, collectionCodeInput);
+    const res = await confirmStoreCollectionWithCode(order.id, collectionCodeInput);
     if (!res.ok) setCodeError(res.error || 'Invalid code');
   };
 
@@ -172,37 +171,7 @@ export const TrackOrderPage: React.FC<{ orderId: string }> = ({ orderId }) => {
               ))}
             </div>
 
-            {/* Operational Progression Sandbox Helper for Testing Stage-2 & Receipt */}
-            {!receiptConfirmed && (
-              <div className="p-4 rounded-xl bg-[#FAF9F6] border border-stone-200 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-stone-700">
-                  <Clock className="w-4 h-4 text-amber-800" />
-                  <span>Fulfilment & Stage-2 Inspection Simulation Controls</span>
-                </div>
-                <p className="text-xs text-stone-600">
-                  In production, the separate BuyHive Operations & Inspection app updates these stages. Use these controls to test Stage-2 inspection, failure hold, and receipt confirmation:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => advanceOrderFulfilmentStage(order.id, false)}
-                    className="px-3.5 py-2 rounded-lg bg-[#141619] text-white text-xs font-semibold cursor-pointer"
-                  >
-                    Advance Next Operational Stage
-                  </button>
-                  {order.status === 'under_inspection' && (
-                    <button
-                      type="button"
-                      onClick={() => advanceOrderFulfilmentStage(order.id, true)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-red-300 text-red-700 text-xs font-semibold cursor-pointer"
-                    >
-                      <ShieldAlert className="w-3.5 h-3.5" />
-                      Simulate Stage-2 Failure Hold
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+
           </div>
 
           {/* Right Panel: Collection Verification or Feedback Gate */}
@@ -214,7 +183,7 @@ export const TrackOrderPage: React.FC<{ orderId: string }> = ({ orderId }) => {
                   <span>Confirm Store Collection</span>
                 </div>
                 <p className="text-xs text-stone-600">
-                  Hub: <span className="font-semibold">{order.collectionPoint}</span>. Enter your secure collection code (<span className="font-mono font-semibold">{order.collectionCode}</span>) to verify receipt and unlock feedback.
+                  Hub: <span className="font-semibold">{order.collectionPoint}</span>. Enter the collection code provided by BuyHive at the collection hub to verify receipt and unlock feedback.
                 </p>
                 {codeError && <p className="text-xs text-red-600 font-medium">{codeError}</p>}
                 <input

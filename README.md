@@ -453,3 +453,50 @@ Open `http://localhost:3000`. Vite proxies `/api/*` requests to the Laravel deve
 Customer and seller login/registration, persistent carts, checkout/order creation, payments, order tracking, feedback, wishlist, support, and seller dashboard mutations still need dedicated session-authenticated API endpoints and frontend service wiring. Existing demo-mode behaviour must not be mistaken for live backend transactions. Payment provider credentials and live webhooks also remain separate configuration work.
 
 The Laravel Vue/Inertia placeholder pages remain in place for now; this change does not delete or replace them.
+
+
+## React storefront and Laravel session API
+
+The root React + TypeScript application is the customer-facing storefront and seller portal. Laravel is the backend system of record. React calls Laravel through the `/api` Vite proxy during local development. Authentication uses Laravel's first-party session cookie and CSRF protection; Sanctum and Passport are not used.
+
+### Local setup
+
+Start MySQL in XAMPP. In a terminal, prepare the Laravel database (run migrations only if they have not already been applied):
+
+```powershell
+cd C:\Users\elite\BuyHive\laravel-app
+php artisan migrate
+php artisan db:seed
+php artisan storage:link
+php -S 127.0.0.1:8010 -t public public/index.php
+```
+
+In another terminal:
+
+```powershell
+cd C:\Users\elite\BuyHive
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. The root Vite server forwards `/api/*` to Laravel on port 8010. The PHP built-in server command is a temporary workaround for the current Herd PHP 8.5 `artisan serve` cURL startup issue.
+
+### Connected workflows in this integration phase
+
+- Customer and seller registration/login use Laravel sessions, role checks and server-side validation.
+- Session identity is rehydrated from Laravel on page load; local storage no longer acts as an authentication source.
+- Public product listings come from Laravel and retain the approved-seller + Stage-1 inspection gate.
+- Customer cart items are persisted in Laravel; checkout creates an order and commission/earning ledger entries server-side.
+- Seller product creation is persisted in Laravel; images are decoded, MIME-checked and stored on the public disk.
+- Order history is loaded from Laravel for the signed-in customer.
+- Collection confirmation is validated server-side and seller earnings are released only after the required inspection and receipt conditions.
+- Customer and seller support, wishlist, address, reward, seller earnings and payout API routes are available for further UI wiring.
+
+### Important integration boundaries
+
+- Payment initiation is currently sandbox-only. The API does not claim that a real M-Pesa/card/PayPal charge has occurred. Production checkout is blocked until a real provider adapter and credentials are configured.
+- M-Pesa callback handling requires the configured callback HMAC secret; this is a BuyHive integration guard, not a complete Daraja callback adapter.
+- Collection codes are intentionally not returned in the order API. A production SMS/email notification provider and the separate field-operations workflow must deliver/verify collection codes.
+- Seller KRA/document verification and secure payout-account capture/settlement require dedicated document and encrypted account workflows. The registration form's KRA/payout fields are not treated as verified data.
+- Seller dashboard metrics, product creation and the main order/earnings API are connected, but not every seller settings, messaging, promotion and payout action has a finished React-to-API workflow.
+- The separate management/inspection system remains a signed machine-to-machine integration and is not exposed as a customer/admin portal.

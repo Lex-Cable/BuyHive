@@ -33,7 +33,7 @@ import {
   INITIAL_TICKETS,
 } from '../data/seedCatalog';
 import { CATEGORIES, IMG_HERO } from '../data/categories';
-import { fetchPublicCatalog, getStorefrontSession, loginStorefront, logoutStorefront, registerStorefront, fetchStorefrontMeta, fetchApiCart, addApiCartItem, updateApiCartItem, deleteApiCartItem, fetchApiOrders, checkoutApiOrder, createApiSellerProduct, type ApiUser, type ApiOrder } from '../lib/buyhiveApi';
+import { fetchPublicCatalog, getStorefrontSession, loginStorefront, logoutStorefront, registerStorefront, fetchStorefrontMeta, fetchApiCart, addApiCartItem, updateApiCartItem, deleteApiCartItem, fetchApiOrders, checkoutApiOrder, createApiSellerProduct, confirmApiCollection, type ApiUser, type ApiOrder } from '../lib/buyhiveApi';
 
 export function formatKSh(amount: number): string {
   return `KSh ${Math.round(amount).toLocaleString('en-KE')}`;
@@ -109,7 +109,7 @@ interface MarketplaceContextValue extends MarketplaceState {
     paymentMethod: PaymentMethodId;
     mpesaPhone?: string;
   }) => Promise<{ ok: boolean; order?: Order; error?: string }>;
-  confirmStoreCollectionWithCode: (orderId: string, code: string) => { ok: boolean; error?: string };
+  confirmStoreCollectionWithCode: (orderId: string, code: string) => Promise<{ ok: boolean; error?: string }>;
   advanceOrderFulfilmentStage: (orderId: string, simulateStage2Failure?: boolean) => void;
   submitOrderFeedback: (feedback: Omit<CustomerFeedback, 'id' | 'customerId' | 'createdAt'>) => { ok: boolean; error?: string };
   redeemRewardPoints: (points: number) => { ok: boolean; couponCode?: string; error?: string };
@@ -192,6 +192,23 @@ const mapApiUser = (user: ApiUser): { customerUser: CustomerUser | null; sellerU
     commissionRatePercent:DEFAULT_MARKETPLACE_COMMISSION_PERCENT,joinedAt:new Date().toISOString().slice(0,10),
   }};
 };
+const mapApiSellerProduct = (record:any,sellerId:string,meta:{categories:any[];locations:any[]}):Product => {
+  const categoryRecord=meta.categories.find((item)=>String(item.id)===String(record.category_id));
+  const subcategoryIndex=(categoryRecord?.subcategories ?? []).findIndex((item:any)=>String(item.id)===String(record.subcategory_id));
+  const category=CATEGORIES.find((item)=>item.id===`cat-${categoryRecord?.sort_order ?? 0}`);
+  const location=meta.locations.find((item)=>String(item.id)===String(record.location_id));
+  return {
+    id:String(record.id),sku:record.sku,sellerId,name:record.name,slug:record.slug,
+    categoryId:category?.id ?? '',subcategoryId:category&&subcategoryIndex>=0?category.subcategories[subcategoryIndex]?.id ?? '':'',
+    brand:record.brand ?? '',description:record.description ?? '',specifications:record.specifications ?? {},
+    condition:record.condition ?? 'New',images:(record.images ?? []).map((path:string)=>path.startsWith('http')?path:`/storage/${path}`),
+    price:Number(record.price),stock:Number(record.stock),countySlug:location?.slug ?? '',town:record.town ?? '',
+    deliveryAvailable:Boolean(record.delivery_available),collectionAvailable:Boolean(record.collection_available),
+    warrantyInfo:record.warranty_info ?? undefined,variations:[],occasionSlugs:[],stageOneStatus:record.stage_one_status,
+    isPublished:Boolean(record.is_published),isPaused:Boolean(record.is_paused),viewsCount:0,salesCount:0,
+    ratingAverage:0,ratingCount:0,createdAt:new Date().toISOString().slice(0,10),inspectionHistory:[],
+  };
+};
 const mapApiOrder = (order: ApiOrder, customer?: CustomerUser | null): Order => ({
   id:order.id,orderNumber:order.order_number,customerId:order.customer_id,customerName:customer?.fullName ?? '',
   customerPhone:customer?.phone ?? '',customerEmail:customer?.email ?? '',fulfilmentMethod:order.fulfilment_method,
@@ -246,6 +263,11 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const mapped=mapApiUser(user);
       setState((previous)=>({...previous,customerUser:mapped.customerUser,sellerUser:mapped.sellerUser,
         sellers:mapped.sellerUser?[mapped.sellerUser,...previous.sellers.filter((s)=>s.id!==mapped.sellerUser!.id)]:previous.sellers}));
+      if(mapped.sellerUser) Promise.all([fetchApiSellerProducts(),fetchStorefrontMeta()]).then(([products,meta])=>{
+        if(cancelled)return;
+        const mappedProducts=products.data.map((record)=>mapApiSellerProduct(record,mapped.sellerUser!.id,meta));
+        setState((previous)=>({...previous,products:[...mappedProducts,...previous.products.filter((p)=>!mappedProducts.some((m)=>m.id===p.id))]}));
+      }).catch(()=>undefined);
       if(mapped.customerUser) Promise.all([fetchApiCart(),fetchApiOrders()]).then(([cart,orders])=>{
         if(cancelled)return;
         setState((previous)=>({...previous,
@@ -355,6 +377,10 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if(!mapped.sellerUser)return {ok:false,error:'This account is not registered as a seller.'};
       setState((previous)=>({...previous,sellerUser:mapped.sellerUser,customerUser:null,
         sellers:[mapped.sellerUser!,...previous.sellers.filter((s)=>s.id!==mapped.sellerUser!.id)]}));
+      void Promise.all([fetchApiSellerProducts(),fetchStorefrontMeta()]).then(([products,meta])=>{
+        const mappedProducts=products.data.map((record)=>mapApiSellerProduct(record,mapped.sellerUser!.id,meta));
+        setState((previous)=>({...previous,products:[...mappedProducts,...previous.products.filter((p)=>!mappedProducts.some((m)=>m.id===p.id))]}));
+      }).catch(()=>undefined);
       notify(`Signed in to Seller Portal (${mapped.sellerUser.businessName}).`,'success');
       return {ok:true};
     } catch(error){return {ok:false,error:error instanceof Error?error.message:'Seller login failed.'};}
@@ -729,11 +755,22 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return { ok: true, order: newOrder };
   };
 
-  const confirmStoreCollectionWithCode = (orderId: string, code: string) => {
+  const confirmStoreCollectionWithCode = async (orderId: string, code: string) => {
     const order = state.orders.find((o) => o.id === orderId);
     if (!order) return { ok: false, error: 'Order not found.' };
     if (order.fulfilmentMethod !== 'store_collection') {
       return { ok: false, error: 'Order is not a store collection order.' };
+    }
+    if (catalogSource === 'api') {
+      try {
+        const response = await confirmApiCollection(orderId,code);
+        const updated = mapApiOrder(response.data,state.customerUser);
+        setState((previous)=>({...previous,orders:previous.orders.map((item)=>item.id===orderId?updated:item)}));
+        notify('Collection confirmed! You are now eligible to submit order feedback.','success');
+        return {ok:true};
+      } catch(error) {
+        return {ok:false,error:error instanceof Error?error.message:'Collection confirmation failed.'};
+      }
     }
     if (order.collectionCode?.toUpperCase() !== code.trim().toUpperCase()) {
       return { ok: false, error: 'Invalid collection code. Check your order confirmation code.' };
